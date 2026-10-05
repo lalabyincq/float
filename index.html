@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>浮岛记 (Float) - 手机版</title>
+<title>浮岛记 (Float) - 2.5D 原型</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
@@ -14,7 +14,6 @@
   }
   #game { display: block; width: 100vw; height: 100vh; }
 
-  /* 顶部 UI */
   #ui-top {
     position: fixed; top: env(safe-area-inset-top, 0); left: 0; right: 0;
     padding: 8px 12px; background: rgba(15,18,24,0.85);
@@ -22,75 +21,49 @@
     align-items: center; pointer-events: none;
   }
   .hunger-wrap { display: flex; align-items: center; gap: 6px; }
-  .hunger-bar {
-    width: 120px; height: 12px; background: #333; border-radius: 6px; overflow: hidden;
-  }
+  .hunger-bar { width: 120px; height: 12px; background: #333; border-radius: 6px; overflow: hidden; }
   .hunger-fill { height: 100%; background: #e0a028; transition: width .2s; }
   .hunger-fill.low { background: #c83828; }
   .stat { white-space: nowrap; }
 
-  /* 消息 */
+  #daynight-bar {
+    position: fixed; top: calc(env(safe-area-inset-top, 0) + 52px); left: 12px;
+    width: 200px; height: 18px; border-radius: 9px; overflow: hidden;
+    display: flex; background: #222; pointer-events: none;
+  }
+  .dn-day { flex: 1; background: linear-gradient(90deg, #4a90c2, #f5d76e); }
+  .dn-night { flex: 1; background: linear-gradient(90deg, #2c3e6b, #1a1a3e); }
+  .dn-icon { position: absolute; top: 0; height: 18px; line-height: 18px; font-size: 14px; transform: translateX(-50%); transition: left 0.3s; }
+  .dn-label { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 18px; line-height: 18px; font-size: 11px; color: #fff; text-shadow: 0 0 3px #000; }
+
+  .hint { position: fixed; top: calc(env(safe-area-inset-top, 0) + 95px); left: 12px; font-size: 11px; color: #888; pointer-events: none; }
+
+  #joystick {
+    position: fixed; left: 30px; bottom: calc(40px + env(safe-area-inset-bottom, 0));
+    width: 110px; height: 110px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); touch-action: none;
+  }
+  #stick { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4); }
+
+  .btn {
+    position: fixed; width: 60px; height: 60px; border-radius: 50%;
+    background: rgba(40,90,60,0.8); border: 2px solid rgba(120,220,160,0.5);
+    color: #eafff0; font-size: 12px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center; touch-action: none;
+  }
+  .btn:active { background: rgba(60,140,90,0.9); }
+  #btn-jump { right: 30px; bottom: calc(210px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.8); border-color: rgba(180,150,255,0.5); }
+  #btn-fish { right: 110px; bottom: calc(140px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.8); border-color: rgba(100,180,255,0.5); }
+  #btn-collect { right: 30px; bottom: calc(140px + env(safe-area-inset-bottom, 0)); }
+  #btn-deposit { right: 110px; bottom: calc(60px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.8); border-color: rgba(220,120,120,0.5); }
+  #btn-eat { right: 30px; bottom: calc(60px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.8); border-color: rgba(220,180,80,0.5); }
+
   #message {
     position: fixed; bottom: 38%; left: 50%; transform: translateX(-50%);
     background: rgba(0,0,0,0.75); padding: 8px 16px; border-radius: 20px;
     font-size: 15px; opacity: 0; transition: opacity .3s; pointer-events: none;
   }
   #message.show { opacity: 1; }
-
-  /* 虚拟摇杆 */
-  #joystick {
-    position: fixed; left: 30px; bottom: calc(40px + env(safe-area-inset-bottom, 0));
-    width: 110px; height: 110px; border-radius: 50%;
-    background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2);
-    touch-action: none;
-  }
-  #stick {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
-    width: 48px; height: 48px; border-radius: 50%;
-    background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4);
-  }
-
-  /* 操作按钮 */
-  .btn {
-    position: fixed; width: 64px; height: 64px; border-radius: 50%;
-    background: rgba(40,90,60,0.8); border: 2px solid rgba(120,220,160,0.5);
-    color: #eafff0; font-size: 13px; font-weight: bold;
-    display: flex; align-items: center; justify-content: center;
-    touch-action: none; -webkit-user-select: none;
-  }
-  .btn:active { background: rgba(60,140,90,0.9); }
-  #btn-fish { right: 110px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.8); border-color: rgba(100,180,255,0.5); }
-  #btn-collect { right: 30px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); }
-  #btn-deposit { right: 110px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.8); border-color: rgba(220,120,120,0.5); }
-  #btn-eat { right: 30px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.8); border-color: rgba(220,180,80,0.5); }
-
-  .hint {
-    position: fixed; top: calc(env(safe-area-inset-top, 0) + 95px); left: 12px;
-    font-size: 11px; color: #888; pointer-events: none;
-  }
-
-  /* 昼夜进度条 */
-  #daynight-bar {
-    position: fixed; top: calc(env(safe-area-inset-top, 0) + 52px); left: 12px;
-    width: 200px; height: 18px; border-radius: 9px; overflow: hidden;
-    display: flex; background: #222; pointer-events: none;
-  }
-  .dn-day {
-    flex: 1; background: linear-gradient(90deg, #4a90c2, #f5d76e);
-  }
-  .dn-night {
-    flex: 1; background: linear-gradient(90deg, #2c3e6b, #1a1a3e);
-  }
-  .dn-icon {
-    position: absolute; top: 0; height: 18px; line-height: 18px;
-    font-size: 14px; transform: translateX(-50%);
-    transition: left 0.3s;
-  }
-  .dn-label {
-    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-    height: 18px; line-height: 18px; font-size: 11px; color: #fff;
-    text-shadow: 0 0 3px #000;
-  }
 </style>
 </head>
 <body>
@@ -102,11 +75,10 @@
     <div class="hunger-bar"><div id="hunger-fill" class="hunger-fill"></div></div>
     <span id="hunger-val">100</span>
   </div>
-  <div class="stat">背包: <span id="inv">水晶0 兽皮0 木材0</span></div>
-  <div class="stat">营地: <span id="sto">水晶0 兽皮0 木材0</span></div>
+  <div class="stat">背包: <span id="inv">水晶0 兽皮0 木材0 鱼0</span></div>
+  <div class="stat">营地: <span id="sto">水晶0 兽皮0 木材0 鱼0</span></div>
 </div>
 
-<!-- 昼夜进度条 -->
 <div id="daynight-bar">
   <div class="dn-day"></div>
   <div class="dn-night"></div>
@@ -114,9 +86,10 @@
   <div class="dn-label" id="dn-label">白天</div>
 </div>
 
-<div class="hint">左摇杆移动 · 右按钮：捕鱼/采集/存仓/进食</div>
+<div class="hint">左摇杆移动 · 跳跃可上1格高台</div>
 
 <div id="joystick"><div id="stick"></div></div>
+<div class="btn" id="btn-jump">跳跃</div>
 <div class="btn" id="btn-fish">捕鱼</div>
 <div class="btn" id="btn-collect">采集</div>
 <div class="btn" id="btn-deposit">存仓</div>
@@ -127,19 +100,21 @@
 <script>
 // ========== 配置 ==========
 const TILE = 36;
+const ELEV = 12; // 每格高度的像素偏移
 const MAP_W = 40, MAP_H = 40;
 const VISION_NEAR = 5, VISION_FAR = 9;
 const WATER=0, GRASS=1, SAND=2, ROCK=3, TREE=4, HOME=5;
-// 昼夜：10分钟一周期(600秒)，60fps → 每帧加 100/600/60
 const DAY_SPEED = 100 / 600 / 60;
-// 饥饿：不进食撑7天=7个周期=4200秒，每帧减 100/4200/60
 const HUNGER_RATE = 100 / 4200 / 60;
 
 const COLORS = {
-  water: '#1e5078', water_far: '#143250',
-  grass: '#3c8246', grass_far: '#285a32',
-  sand: '#c8b478', rock: '#786e64', tree: '#1e5028',
-  home: '#c83c3c', fog: '#0a0c12', memory: '#1e232d',
+  water: '#1e5078', water_far: '#143250', water_side: '#0d3550',
+  grass: '#3c8246', grass_far: '#285a32', grass_side: '#2a5e32',
+  sand: '#c8b478', sand_side: '#a08a50',
+  rock: '#8a7e72', rock_side: '#5e544a', rock_top: '#a09488',
+  tree: '#1e5028', tree_trunk: '#5a3a1a',
+  home: '#c83c3c', home_side: '#8a2828',
+  fog: '#0a0c12', memory: '#1e232d',
   resource: '#78c8ff', resource_far: '#3c6478',
   player: '#ff8c3c'
 };
@@ -149,6 +124,8 @@ class Island {
   constructor(seed=42) {
     this.rand = mulberry32(seed);
     this.tiles = Array.from({length:MAP_H}, () => Array(MAP_W).fill(WATER));
+    this.elev = Array.from({length:MAP_H}, () => Array(MAP_W).fill(0));
+    this.obsHeight = Array.from({length:MAP_H}, () => Array(MAP_W).fill(0)); // 障碍物高度
     this.resources = {};
     this.memory = Array.from({length:MAP_H}, () => Array(MAP_W).fill(false));
     this._generate();
@@ -159,17 +136,19 @@ class Island {
       const dist = Math.hypot(x-cx, y-cy);
       const noise = (this.rand()-0.5)*6;
       const r = baseR + noise;
-      if (dist < r-2) this.tiles[y][x] = GRASS;
-      else if (dist < r) this.tiles[y][x] = SAND;
-      else if (dist < r+1) this.tiles[y][x] = WATER;
+      if (dist < r-2) { this.tiles[y][x] = GRASS; this.elev[y][x] = Math.floor(this.rand()*3); }
+      else if (dist < r) { this.tiles[y][x] = SAND; this.elev[y][x] = 0; }
+      else if (dist < r+1) { this.tiles[y][x] = WATER; this.elev[y][x] = 0; }
     }
+    // 撒树和石头（带高度）
     for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++) {
       if (this.tiles[y][x] === GRASS) {
         const r = this.rand();
-        if (r < 0.08) this.tiles[y][x] = TREE;
-        else if (r < 0.11) this.tiles[y][x] = ROCK;
+        if (r < 0.07) { this.tiles[y][x] = TREE; this.obsHeight[y][x] = 3 + Math.floor(this.rand()*3); }
+        else if (r < 0.11) { this.tiles[y][x] = ROCK; this.obsHeight[y][x] = 1 + Math.floor(this.rand()*4); }
       }
     }
+    // 资源
     for (let i=0;i<15;i++) {
       const x = 3 + Math.floor(this.rand()*(MAP_W-6));
       const y = 3 + Math.floor(this.rand()*(MAP_H-6));
@@ -178,6 +157,23 @@ class Island {
     }
     this.home = {x: Math.floor(cx), y: Math.floor(cy)};
     this.tiles[this.home.y][this.home.x] = HOME;
+    this.elev[this.home.y][this.home.x] = 1;
+    this.obsHeight[this.home.y][this.home.x] = 0;
+  }
+  // 判断某格是否可站立
+  walkable(x, y) {
+    if (x<0||x>=MAP_W||y<0||y>=MAP_H) return false;
+    const t = this.tiles[y][x];
+    if (t === WATER || t === TREE) return false;
+    if (t === ROCK) return this.obsHeight[y][x] <= 1; // 只有1格高的石头能站上
+    return true;
+  }
+  // 站立时的实际高度 = 地面高度 + 石头高度(如果站石头上)
+  standHeight(x, y) {
+    if (!this.walkable(x,y)) return -1;
+    let h = this.elev[y][x];
+    if (this.tiles[y][x] === ROCK) h += this.obsHeight[y][x];
+    return h;
   }
 }
 
@@ -194,11 +190,16 @@ function mulberry32(a) {
 class Player {
   constructor(x, y) { this.x=x; this.y=y; this.hunger=100;
     this.inv={crystal:0,hide:0,wood:0,fish:0}; this.storage={crystal:0,hide:0,wood:0,fish:0}; }
-  move(dx, dy, island) {
+  getHeight(island) { return island.standHeight(this.x, this.y); }
+  // jump=false只能走平地; jump=true可跳1格高差
+  move(dx, dy, island, jump=false) {
     const nx=this.x+dx, ny=this.y+dy;
-    if (nx<0||nx>=MAP_W||ny<0||ny>=MAP_H) return false;
-    const t = island.tiles[ny][nx];
-    if (t===WATER||t===TREE||t===ROCK) return false;
+    if (!island.walkable(nx, ny)) return false;
+    const curH = this.getHeight(island);
+    const tgtH = island.standHeight(nx, ny);
+    const diff = tgtH - curH;
+    if (jump) { if (diff > 1 || diff < -3) return false; }
+    else { if (diff !== 0) return false; }
     this.x=nx; this.y=ny; this.hunger=Math.max(0,this.hunger-0.15); return true;
   }
   collect(island) {
@@ -225,6 +226,7 @@ class Game {
     this.dayTime = 0;
     this.moveDX = 0; this.moveDY = 0;
     this.moveCooldown = 0;
+    this.jumpQueued = false;
     this.msg = ''; this.msgTimer = 0;
     this.setupInput();
     this.updateUI();
@@ -240,46 +242,36 @@ class Game {
     this.ctx.scale(devicePixelRatio, devicePixelRatio);
   }
   setupInput() {
-    // 摇杆
     const joy = document.getElementById('joystick');
     const stick = document.getElementById('stick');
     let active = false, cx=0, cy=0;
     const setStick = (dx, dy) => {
-      const max = 40;
-      const len = Math.hypot(dx, dy);
+      const max = 40; const len = Math.hypot(dx, dy);
       if (len > max) { dx = dx/len*max; dy = dy/len*max; }
       stick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
       this.moveDX = dx/max; this.moveDY = dy/max;
     };
-    joy.addEventListener('touchstart', e => {
-      e.preventDefault(); active=true;
-      const r = joy.getBoundingClientRect();
-      cx = r.left + r.width/2; cy = r.top + r.height/2;
-    });
-    joy.addEventListener('touchmove', e => {
-      e.preventDefault(); if (!active) return;
-      const t = e.touches[0];
-      setStick(t.clientX - cx, t.clientY - cy);
-    });
+    joy.addEventListener('touchstart', e => { e.preventDefault(); active=true; const r=joy.getBoundingClientRect(); cx=r.left+r.width/2; cy=r.top+r.height/2; });
+    joy.addEventListener('touchmove', e => { e.preventDefault(); if(!active) return; const t=e.touches[0]; setStick(t.clientX-cx, t.clientY-cy); });
     const endJoy = e => { e.preventDefault(); active=false; setStick(0,0); stick.style.transform='translate(-50%,-50%)'; };
     joy.addEventListener('touchend', endJoy);
     joy.addEventListener('touchcancel', endJoy);
 
-    // 按钮
+    document.getElementById('btn-jump').addEventListener('touchstart', e => { e.preventDefault(); this.jumpQueued = true; });
     document.getElementById('btn-fish').addEventListener('touchstart', e => { e.preventDefault(); this.doFish(); });
     document.getElementById('btn-collect').addEventListener('touchstart', e => { e.preventDefault(); this.doCollect(); });
     document.getElementById('btn-deposit').addEventListener('touchstart', e => { e.preventDefault(); this.doDeposit(); });
     document.getElementById('btn-eat').addEventListener('touchstart', e => { e.preventDefault(); this.doEat(); });
 
-    // 键盘（桌面测试用）
+    const keys = {};
     window.addEventListener('keydown', e => {
-      if (e.key===' '||e.key==='e') this.doCollect();
+      keys[e.key]=true;
+      if (e.key===' ') { this.jumpQueued = true; e.preventDefault(); }
+      if (e.key==='e') this.doCollect();
       if (e.key==='q') this.doFish();
       if (e.key==='f') this.doDeposit();
       if (e.key==='r') this.doEat();
     });
-    const keys = {};
-    window.addEventListener('keydown', e => keys[e.key]=true);
     window.addEventListener('keyup', e => keys[e.key]=false);
     this.getKeys = () => {
       let dx=0, dy=0;
@@ -297,7 +289,6 @@ class Game {
     this.updateUI();
   }
   canFish() {
-    // 站在沙滩上且相邻有水才能捕鱼
     const p = this.player, is = this.island;
     if (is.tiles[p.y][p.x] !== SAND) return false;
     for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
@@ -308,22 +299,16 @@ class Game {
   }
   doFish() {
     if (!this.canFish()) { this.showMsg('要站在沙滩(黄色)且旁边有水才能捕鱼'); return; }
-    if (Math.random() < 0.7) {
-      this.player.inv.fish++;
-      this.showMsg('捕到鱼了！🐟');
-    } else {
-      this.showMsg('这次没捕到鱼...');
-    }
+    if (Math.random() < 0.7) { this.player.inv.fish++; this.showMsg('捕到鱼了！🐟'); }
+    else this.showMsg('这次没捕到鱼...');
     this.updateUI();
   }
   doDeposit() {
-    if (this.player.x===this.island.home.x && this.player.y===this.island.home.y) {
-      this.player.deposit(); this.showMsg('资源已存入营地');
-    } else this.showMsg('需回到营地(红框)才能存');
+    if (this.player.x===this.island.home.x && this.player.y===this.island.home.y) { this.player.deposit(); this.showMsg('资源已存入营地'); }
+    else this.showMsg('需回到营地(红框)才能存');
     this.updateUI();
   }
   doEat() {
-    // 优先吃鱼（恢复更多），再吃兽皮
     if (this.player.inv.fish > 0) { this.player.inv.fish--; this.player.hunger=Math.min(100,this.player.hunger+45); this.showMsg('吃鱼 +45'); }
     else if (this.player.storage.fish > 0) { this.player.storage.fish--; this.player.hunger=Math.min(100,this.player.hunger+45); this.showMsg('营地吃鱼 +45'); }
     else if (this.player.inv.hide > 0) { this.player.inv.hide--; this.player.hunger=Math.min(100,this.player.hunger+25); this.showMsg('吃兽皮 +25'); }
@@ -346,96 +331,143 @@ class Game {
       }
   }
   update() {
-    // 移动冷却
     if (this.moveCooldown > 0) this.moveCooldown--;
-
-    // 获取方向：键盘优先，否则用摇杆
     let {dx, dy} = this.getKeys ? this.getKeys() : {dx:0, dy:0};
     if (dx === 0 && dy === 0) {
-      // 摇杆输入，取绝对值大的方向
       if (Math.abs(this.moveDX) >= Math.abs(this.moveDY)) {
-        dx = Math.abs(this.moveDX) > 0.3 ? (this.moveDX > 0 ? 1 : -1) : 0;
-        dy = 0;
+        dx = Math.abs(this.moveDX) > 0.3 ? (this.moveDX > 0 ? 1 : -1) : 0; dy = 0;
       } else {
-        dx = 0;
-        dy = Math.abs(this.moveDY) > 0.3 ? (this.moveDY > 0 ? 1 : -1) : 0;
+        dx = 0; dy = Math.abs(this.moveDY) > 0.3 ? (this.moveDY > 0 ? 1 : -1) : 0;
       }
     }
-
-    // 有方向且冷却结束才移动
     if ((dx !== 0 || dy !== 0) && this.moveCooldown <= 0) {
-      if (this.player.move(dx, dy, this.island)) {
-        this.moveCooldown = 8; // 每8帧移动一格，约6-7格/秒
+      const jump = this.jumpQueued;
+      if (this.player.move(dx, dy, this.island, jump)) {
+        this.moveCooldown = 8;
       }
+      this.jumpQueued = false;
     }
-
     this.camX = this.player.x*TILE - this.W/2;
-    this.camY = this.player.y*TILE - this.H/2;
+    this.camY = this.player.y*TILE - this.H/2 - this.player.getHeight(this.island)*ELEV;
     this.updateMemory();
     this.dayTime = (this.dayTime + DAY_SPEED) % 100;
     this.player.hunger = Math.max(0, this.player.hunger - HUNGER_RATE);
     if (this.msgTimer > 0) this.msgTimer--;
     this.updateUI();
   }
-  tileColor(t, dist) {
-    const map = {
-      [WATER]: dist==='near'?'water':'water_far',
-      [GRASS]: dist==='near'?'grass':'grass_far',
-      [SAND]: 'sand', [ROCK]: 'rock', [TREE]: 'tree', [HOME]: 'home'
-    };
-    return COLORS[map[t]];
+  // 2.5D 渲染
+  drawTile(x, y) {
+    const is = this.island;
+    const t = is.tiles[y][x];
+    const e = is.elev[y][x];
+    const oh = is.obsHeight[y][x];
+    const vis = this.visible(x, y);
+    const mem = is.memory[y][x];
+    if (vis !== 'near' && vis !== 'far' && !mem) return;
+
+    const sx = x*TILE - this.camX;
+    const sy = y*TILE - this.camY - e*ELEV;
+
+    // 颜色
+    let topColor, sideColor;
+    const dist = vis === 'near' ? 'near' : 'far';
+    switch(t) {
+      case WATER: topColor = vis==='near'?COLORS.water:COLORS.water_far; sideColor = COLORS.water_side; break;
+      case GRASS: topColor = vis==='near'?COLORS.grass:COLORS.grass_far; sideColor = COLORS.grass_side; break;
+      case SAND: topColor = COLORS.sand; sideColor = COLORS.sand_side; break;
+      case ROCK: topColor = COLORS.rock_top; sideColor = COLORS.rock_side; break;
+      case TREE: topColor = vis==='near'?COLORS.grass:COLORS.grass_far; sideColor = COLORS.grass_side; break;
+      case HOME: topColor = COLORS.grass; sideColor = COLORS.home_side; break;
+    }
+    if (vis !== 'near' && vis !== 'far') topColor = sideColor = COLORS.memory;
+
+    // 侧面（东侧和南侧）
+    const drawSide = vis === 'near' || vis === 'far';
+    if (drawSide) {
+      // 东侧面
+      const eE = (x+1 < MAP_W) ? is.elev[y][x+1] : 0;
+      if (e > eE) {
+        this.ctx.fillStyle = sideColor;
+        this.ctx.fillRect(sx+TILE, sy, 4, (e-eE)*ELEV + TILE);
+      }
+      // 南侧
+      const eS = (y+1 < MAP_H) ? is.elev[y+1][x] : 0;
+      if (e > eS) {
+        this.ctx.fillStyle = sideColor;
+        this.ctx.fillRect(sx, sy+TILE, TILE, (e-eS)*ELEV + 4);
+      }
+    }
+
+    // 顶面
+    this.ctx.fillStyle = topColor;
+    this.ctx.fillRect(sx, sy, TILE, TILE);
+
+    // 障碍物
+    if (drawSide) {
+      if (t === ROCK) {
+        this.ctx.fillStyle = COLORS.rock_side;
+        this.ctx.fillRect(sx+4, sy - oh*ELEV + 4, TILE-8, oh*ELEV);
+        this.ctx.fillStyle = COLORS.rock_top;
+        this.ctx.fillRect(sx+4, sy - oh*ELEV, TILE-8, 8);
+      } else if (t === TREE) {
+        // 树干
+        this.ctx.fillStyle = COLORS.tree_trunk;
+        this.ctx.fillRect(sx+TILE/2-3, sy - oh*ELEV, 6, oh*ELEV);
+        // 树冠
+        this.ctx.fillStyle = COLORS.tree;
+        this.ctx.beginPath();
+        this.ctx.arc(sx+TILE/2, sy - oh*ELEV, TILE/2, 0, Math.PI*2);
+        this.ctx.fill();
+      } else if (t === HOME) {
+        this.ctx.fillStyle = COLORS.home;
+        this.ctx.fillRect(sx+6, sy-16, TILE-12, 20);
+        this.ctx.fillStyle = '#8a2828';
+        this.ctx.beginPath();
+        this.ctx.moveTo(sx+4, sy-16);
+        this.ctx.lineTo(sx+TILE/2, sy-28);
+        this.ctx.lineTo(sx+TILE-4, sy-16);
+        this.ctx.fill();
+      }
+    }
+
+    // 资源点
+    if (vis === 'near' && is.resources[`${x},${y}`]) {
+      this.ctx.fillStyle = COLORS.resource;
+      this.ctx.beginPath();
+      this.ctx.arc(sx+TILE/2, sy+TILE/2, 6, 0, Math.PI*2);
+      this.ctx.fill();
+    } else if (vis === 'far' && is.resources[`${x},${y}`]) {
+      this.ctx.fillStyle = COLORS.resource_far;
+      this.ctx.beginPath();
+      this.ctx.arc(sx+TILE/2, sy+TILE/2, 4, 0, Math.PI*2);
+      this.ctx.fill();
+    }
   }
   draw() {
     const ctx = this.ctx;
     ctx.fillStyle = COLORS.fog;
     ctx.fillRect(0, 0, this.W, this.H);
 
-    const sx0 = Math.max(0, Math.floor(this.camX/TILE)-1);
-    const sx1 = Math.min(MAP_W, sx0 + Math.ceil(this.W/TILE)+3);
-    const sy0 = Math.max(0, Math.floor(this.camY/TILE)-1);
-    const sy1 = Math.min(MAP_H, sy0 + Math.ceil(this.H/TILE)+3);
+    const sx0 = Math.max(0, Math.floor(this.camX/TILE)-2);
+    const sx1 = Math.min(MAP_W, sx0 + Math.ceil(this.W/TILE)+4);
+    const sy0 = Math.max(0, Math.floor((this.camY-80)/TILE)-2);
+    const sy1 = Math.min(MAP_H, sy0 + Math.ceil(this.H/TILE)+6);
 
-    const night = Math.abs(this.dayTime - 50) / 50;
-
-    for (let y=sy0; y<sy1; y++) {
-      for (let x=sx0; x<sx1; x++) {
-        const px = x*TILE - this.camX;
-        const py = y*TILE - this.camY;
-        const vis = this.visible(x, y);
-        const t = this.island.tiles[y][x];
-        const mem = this.island.memory[y][x];
-        let color;
-        if (vis==='near') color = this.tileColor(t, 'near');
-        else if (vis==='far') color = this.tileColor(t, 'far');
-        else if (mem) color = COLORS.memory;
-        else color = COLORS.fog;
-        ctx.fillStyle = color;
-        ctx.fillRect(px, py, TILE, TILE);
-
-        if (vis==='near' && this.island.resources[`${x},${y}`]) {
-          ctx.fillStyle = COLORS.resource;
-          ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE/2, 6, 0, Math.PI*2); ctx.fill();
-        } else if (vis==='far' && this.island.resources[`${x},${y}`]) {
-          ctx.fillStyle = COLORS.resource_far;
-          ctx.beginPath(); ctx.arc(px+TILE/2, py+TILE/2, 4, 0, Math.PI*2); ctx.fill();
-        }
-      }
-    }
-    // 营地
-    const hx = this.island.home.x*TILE - this.camX;
-    const hy = this.island.home.y*TILE - this.camY;
-    ctx.strokeStyle = COLORS.home; ctx.lineWidth = 2;
-    ctx.strokeRect(hx+4, hy+4, TILE-8, TILE-8);
+    // 按从后到前、从低到高的顺序绘制
+    for (let y=sy0; y<sy1; y++)
+      for (let x=sx0; x<sx1; x++)
+        this.drawTile(x, y);
 
     // 玩家
+    const ph = this.player.getHeight(this.island);
     const ppx = this.player.x*TILE - this.camX + TILE/2;
-    const ppy = this.player.y*TILE - this.camY + TILE/2;
+    const ppy = this.player.y*TILE - this.camY + TILE/2 - ph*ELEV;
     ctx.fillStyle = COLORS.player;
     ctx.beginPath(); ctx.arc(ppx, ppy, 10, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
 
     // 夜晚
+    const night = Math.abs(this.dayTime - 50) / 50;
     if (night > 0.3) {
       ctx.fillStyle = `rgba(0,0,0,${(night-0.3)/0.7*0.6})`;
       ctx.fillRect(0, 0, this.W, this.H);
@@ -459,19 +491,10 @@ class Game {
     document.getElementById('hunger-val').textContent = Math.floor(p.hunger);
     document.getElementById('inv').textContent = `水晶${p.inv.crystal} 兽皮${p.inv.hide} 木材${p.inv.wood} 鱼${p.inv.fish}`;
     document.getElementById('sto').textContent = `水晶${p.storage.crystal} 兽皮${p.storage.hide} 木材${p.storage.wood} 鱼${p.storage.fish}`;
-
-    // 昼夜进度条：左半白天(太阳)，右半夜晚(月亮)
     const icon = document.getElementById('dn-icon');
     const label = document.getElementById('dn-label');
-    if (this.dayTime < 50) {
-      icon.textContent = '☀';
-      icon.style.left = (this.dayTime / 50 * 50) + '%';
-      label.textContent = '白天';
-    } else {
-      icon.textContent = '🌙';
-      icon.style.left = (50 + (this.dayTime - 50) / 50 * 50) + '%';
-      label.textContent = '黑夜';
-    }
+    if (this.dayTime < 50) { icon.textContent = '☀'; icon.style.left = (this.dayTime / 50 * 50) + '%'; label.textContent = '白天'; }
+    else { icon.textContent = '🌙'; icon.style.left = (50 + (this.dayTime - 50) / 50 * 50) + '%'; label.textContent = '黑夜'; }
   }
   loop() {
     this.update();
