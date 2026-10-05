@@ -59,9 +59,10 @@
     touch-action: none; -webkit-user-select: none;
   }
   .btn:active { background: rgba(60,140,90,0.9); }
-  #btn-collect { right: 30px; bottom: calc(120px + env(safe-area-inset-bottom, 0)); }
-  #btn-deposit { right: 110px; bottom: calc(60px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.8); border-color: rgba(220,120,120,0.5); }
-  #btn-eat { right: 30px; bottom: calc(40px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.8); border-color: rgba(220,180,80,0.5); }
+  #btn-fish { right: 110px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.8); border-color: rgba(100,180,255,0.5); }
+  #btn-collect { right: 30px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); }
+  #btn-deposit { right: 110px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.8); border-color: rgba(220,120,120,0.5); }
+  #btn-eat { right: 30px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.8); border-color: rgba(220,180,80,0.5); }
 
   .hint {
     position: fixed; top: calc(env(safe-area-inset-top, 0) + 70px); left: 12px;
@@ -83,9 +84,10 @@
   <div class="stat" id="period">白天</div>
 </div>
 
-<div class="hint">左摇杆移动 · 右按钮：采集/存仓/进食</div>
+<div class="hint">左摇杆移动 · 右按钮：捕鱼/采集/存仓/进食</div>
 
 <div id="joystick"><div id="stick"></div></div>
+<div class="btn" id="btn-fish">捕鱼</div>
 <div class="btn" id="btn-collect">采集</div>
 <div class="btn" id="btn-deposit">存仓</div>
 <div class="btn" id="btn-eat">进食</div>
@@ -98,6 +100,10 @@ const TILE = 36;
 const MAP_W = 40, MAP_H = 40;
 const VISION_NEAR = 5, VISION_FAR = 9;
 const WATER=0, GRASS=1, SAND=2, ROCK=3, TREE=4, HOME=5;
+// 昼夜：10分钟一周期(600秒)，60fps → 每帧加 100/600/60
+const DAY_SPEED = 100 / 600 / 60;
+// 饥饿：不进食撑2天=2个周期=1200秒，每帧减 100/1200/60
+const HUNGER_RATE = 100 / 1200 / 60;
 
 const COLORS = {
   water: '#1e5078', water_far: '#143250',
@@ -157,7 +163,7 @@ function mulberry32(a) {
 // ========== 玩家 ==========
 class Player {
   constructor(x, y) { this.x=x; this.y=y; this.hunger=100;
-    this.inv={crystal:0,hide:0,wood:0}; this.storage={crystal:0,hide:0,wood:0}; }
+    this.inv={crystal:0,hide:0,wood:0,fish:0}; this.storage={crystal:0,hide:0,wood:0,fish:0}; }
   move(dx, dy, island) {
     const nx=this.x+dx, ny=this.y+dy;
     if (nx<0||nx>=MAP_W||ny<0||ny>=MAP_H) return false;
@@ -230,6 +236,7 @@ class Game {
     joy.addEventListener('touchcancel', endJoy);
 
     // 按钮
+    document.getElementById('btn-fish').addEventListener('touchstart', e => { e.preventDefault(); this.doFish(); });
     document.getElementById('btn-collect').addEventListener('touchstart', e => { e.preventDefault(); this.doCollect(); });
     document.getElementById('btn-deposit').addEventListener('touchstart', e => { e.preventDefault(); this.doDeposit(); });
     document.getElementById('btn-eat').addEventListener('touchstart', e => { e.preventDefault(); this.doEat(); });
@@ -237,6 +244,7 @@ class Game {
     // 键盘（桌面测试用）
     window.addEventListener('keydown', e => {
       if (e.key===' '||e.key==='e') this.doCollect();
+      if (e.key==='q') this.doFish();
       if (e.key==='f') this.doDeposit();
       if (e.key==='r') this.doEat();
     });
@@ -256,16 +264,41 @@ class Game {
     const r = this.player.collect(this.island);
     const names = {crystal:'水晶', hide:'兽皮', wood:'木材'};
     this.showMsg(r ? `采集到 ${names[r]}` : '这里没有资源');
+    this.updateUI();
+  }
+  canFish() {
+    // 站在沙滩上且相邻有水才能捕鱼
+    const p = this.player, is = this.island;
+    if (is.tiles[p.y][p.x] !== SAND) return false;
+    for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx=p.x+dx, ny=p.y+dy;
+      if (nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H && is.tiles[ny][nx]===WATER) return true;
+    }
+    return false;
+  }
+  doFish() {
+    if (!this.canFish()) { this.showMsg('要站在沙滩(黄色)且旁边有水才能捕鱼'); return; }
+    if (Math.random() < 0.7) {
+      this.player.inv.fish++;
+      this.showMsg('捕到鱼了！🐟');
+    } else {
+      this.showMsg('这次没捕到鱼...');
+    }
+    this.updateUI();
   }
   doDeposit() {
     if (this.player.x===this.island.home.x && this.player.y===this.island.home.y) {
       this.player.deposit(); this.showMsg('资源已存入营地');
     } else this.showMsg('需回到营地(红框)才能存');
+    this.updateUI();
   }
   doEat() {
-    if (this.player.inv.hide > 0) { this.player.inv.hide--; this.player.hunger=Math.min(100,this.player.hunger+30); this.showMsg('吃兽皮 +30'); }
-    else if (this.player.storage.hide > 0) { this.player.storage.hide--; this.player.hunger=Math.min(100,this.player.hunger+30); this.showMsg('营地吃兽皮 +30'); }
-    else this.showMsg('没食物了！');
+    // 优先吃鱼（恢复更多），再吃兽皮
+    if (this.player.inv.fish > 0) { this.player.inv.fish--; this.player.hunger=Math.min(100,this.player.hunger+45); this.showMsg('吃鱼 +45'); }
+    else if (this.player.storage.fish > 0) { this.player.storage.fish--; this.player.hunger=Math.min(100,this.player.hunger+45); this.showMsg('营地吃鱼 +45'); }
+    else if (this.player.inv.hide > 0) { this.player.inv.hide--; this.player.hunger=Math.min(100,this.player.hunger+25); this.showMsg('吃兽皮 +25'); }
+    else if (this.player.storage.hide > 0) { this.player.storage.hide--; this.player.hunger=Math.min(100,this.player.hunger+25); this.showMsg('营地吃兽皮 +25'); }
+    else this.showMsg('没食物了！去捕鱼或打兽吧');
     this.updateUI();
   }
   showMsg(t) { this.msg=t; this.msgTimer=90; }
@@ -309,8 +342,8 @@ class Game {
     this.camX = this.player.x*TILE - this.W/2;
     this.camY = this.player.y*TILE - this.H/2;
     this.updateMemory();
-    this.dayTime = (this.dayTime + 0.05) % 100;
-    this.player.hunger = Math.max(0, this.player.hunger - 0.02);
+    this.dayTime = (this.dayTime + DAY_SPEED) % 100;
+    this.player.hunger = Math.max(0, this.player.hunger - HUNGER_RATE);
     if (this.msgTimer > 0) this.msgTimer--;
     this.updateUI();
   }
@@ -394,8 +427,8 @@ class Game {
     document.getElementById('hunger-fill').style.width = p.hunger + '%';
     document.getElementById('hunger-fill').className = 'hunger-fill' + (p.hunger<30?' low':'');
     document.getElementById('hunger-val').textContent = Math.floor(p.hunger);
-    document.getElementById('inv').textContent = `水晶${p.inv.crystal} 兽皮${p.inv.hide} 木材${p.inv.wood}`;
-    document.getElementById('sto').textContent = `水晶${p.storage.crystal} 兽皮${p.storage.hide} 木材${p.storage.wood}`;
+    document.getElementById('inv').textContent = `水晶${p.inv.crystal} 兽皮${p.inv.hide} 木材${p.inv.wood} 鱼${p.inv.fish}`;
+    document.getElementById('sto').textContent = `水晶${p.storage.crystal} 兽皮${p.storage.hide} 木材${p.storage.wood} 鱼${p.storage.fish}`;
     document.getElementById('period').textContent = this.dayTime < 50 ? '白天' : '黑夜';
   }
   loop() {
