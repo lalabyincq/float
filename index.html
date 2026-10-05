@@ -188,6 +188,7 @@ class Game {
     this.camX = 0; this.camY = 0;
     this.dayTime = 0;
     this.moveDX = 0; this.moveDY = 0;
+    this.moveCooldown = 0;
     this.msg = ''; this.msgTimer = 0;
     this.setupInput();
     this.updateUI();
@@ -282,21 +283,28 @@ class Game {
       }
   }
   update() {
-    // 移动（摇杆或键盘）
+    // 移动冷却
+    if (this.moveCooldown > 0) this.moveCooldown--;
+
+    // 获取方向：键盘优先，否则用摇杆
     let {dx, dy} = this.getKeys ? this.getKeys() : {dx:0, dy:0};
-    if (dx===0 && dy===0) { dx = this.moveDX; dy = this.moveDY; }
-    if (Math.abs(dx) > 0.3 || Math.abs(dy) > 0.3) {
-      // 取主导方向
-      if (Math.abs(dx) > Math.abs(dy)) dx = dx>0?1:-1; else dx = 0;
-      if (Math.abs(dy) > Math.abs(dx*0)) dy = dy>0?1:-1; else dy = 0;
-      // 实际上面写的有问题，重新处理
+    if (dx === 0 && dy === 0) {
+      // 摇杆输入，取绝对值大的方向
+      if (Math.abs(this.moveDX) >= Math.abs(this.moveDY)) {
+        dx = Math.abs(this.moveDX) > 0.3 ? (this.moveDX > 0 ? 1 : -1) : 0;
+        dy = 0;
+      } else {
+        dx = 0;
+        dy = Math.abs(this.moveDY) > 0.3 ? (this.moveDY > 0 ? 1 : -1) : 0;
+      }
     }
-    // 重新处理方向：取绝对值大的方向
-    if (Math.abs(this.moveDX) > 0.3 || Math.abs(this.moveDY) > 0.3) {
-      if (Math.abs(this.moveDX) >= Math.abs(this.moveDY)) { dx = this.moveDX>0?1:-1; dy = 0; }
-      else { dx = 0; dy = this.moveDY>0?1:-1; }
+
+    // 有方向且冷却结束才移动
+    if ((dx !== 0 || dy !== 0) && this.moveCooldown <= 0) {
+      if (this.player.move(dx, dy, this.island)) {
+        this.moveCooldown = 8; // 每8帧移动一格，约6-7格/秒
+      }
     }
-    if (dx || dy) this.player.move(dx, dy, this.island);
 
     this.camX = this.player.x*TILE - this.W/2;
     this.camY = this.player.y*TILE - this.H/2;
