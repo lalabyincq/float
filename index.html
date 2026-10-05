@@ -65,8 +65,31 @@
   #btn-eat { right: 30px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.8); border-color: rgba(220,180,80,0.5); }
 
   .hint {
-    position: fixed; top: calc(env(safe-area-inset-top, 0) + 70px); left: 12px;
+    position: fixed; top: calc(env(safe-area-inset-top, 0) + 95px); left: 12px;
     font-size: 11px; color: #888; pointer-events: none;
+  }
+
+  /* 昼夜进度条 */
+  #daynight-bar {
+    position: fixed; top: calc(env(safe-area-inset-top, 0) + 52px); left: 12px;
+    width: 200px; height: 18px; border-radius: 9px; overflow: hidden;
+    display: flex; background: #222; pointer-events: none;
+  }
+  .dn-day {
+    flex: 1; background: linear-gradient(90deg, #4a90c2, #f5d76e);
+  }
+  .dn-night {
+    flex: 1; background: linear-gradient(90deg, #2c3e6b, #1a1a3e);
+  }
+  .dn-icon {
+    position: absolute; top: 0; height: 18px; line-height: 18px;
+    font-size: 14px; transform: translateX(-50%);
+    transition: left 0.3s;
+  }
+  .dn-label {
+    position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    height: 18px; line-height: 18px; font-size: 11px; color: #fff;
+    text-shadow: 0 0 3px #000;
   }
 </style>
 </head>
@@ -81,7 +104,14 @@
   </div>
   <div class="stat">背包: <span id="inv">水晶0 兽皮0 木材0</span></div>
   <div class="stat">营地: <span id="sto">水晶0 兽皮0 木材0</span></div>
-  <div class="stat" id="period">白天</div>
+</div>
+
+<!-- 昼夜进度条 -->
+<div id="daynight-bar">
+  <div class="dn-day"></div>
+  <div class="dn-night"></div>
+  <div class="dn-icon" id="dn-icon">☀</div>
+  <div class="dn-label" id="dn-label">白天</div>
 </div>
 
 <div class="hint">左摇杆移动 · 右按钮：捕鱼/采集/存仓/进食</div>
@@ -102,8 +132,8 @@ const VISION_NEAR = 5, VISION_FAR = 9;
 const WATER=0, GRASS=1, SAND=2, ROCK=3, TREE=4, HOME=5;
 // 昼夜：10分钟一周期(600秒)，60fps → 每帧加 100/600/60
 const DAY_SPEED = 100 / 600 / 60;
-// 饥饿：不进食撑2天=2个周期=1200秒，每帧减 100/1200/60
-const HUNGER_RATE = 100 / 1200 / 60;
+// 饥饿：不进食撑7天=7个周期=4200秒，每帧减 100/4200/60
+const HUNGER_RATE = 100 / 4200 / 60;
 
 const COLORS = {
   water: '#1e5078', water_far: '#143250',
@@ -429,7 +459,19 @@ class Game {
     document.getElementById('hunger-val').textContent = Math.floor(p.hunger);
     document.getElementById('inv').textContent = `水晶${p.inv.crystal} 兽皮${p.inv.hide} 木材${p.inv.wood} 鱼${p.inv.fish}`;
     document.getElementById('sto').textContent = `水晶${p.storage.crystal} 兽皮${p.storage.hide} 木材${p.storage.wood} 鱼${p.storage.fish}`;
-    document.getElementById('period').textContent = this.dayTime < 50 ? '白天' : '黑夜';
+
+    // 昼夜进度条：左半白天(太阳)，右半夜晚(月亮)
+    const icon = document.getElementById('dn-icon');
+    const label = document.getElementById('dn-label');
+    if (this.dayTime < 50) {
+      icon.textContent = '☀';
+      icon.style.left = (this.dayTime / 50 * 50) + '%';
+      label.textContent = '白天';
+    } else {
+      icon.textContent = '🌙';
+      icon.style.left = (50 + (this.dayTime - 50) / 50 * 50) + '%';
+      label.textContent = '黑夜';
+    }
   }
   loop() {
     this.update();
