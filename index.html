@@ -118,10 +118,12 @@ class Island {
         this.elev[y][x] = Math.max(0, baseH + bump);
       } else if (dist < r) {
         this.tiles[y][x] = SAND;
-        this.elev[y][x] = 0.2 + (noise2(x*0.2, y*0.2)-0.5)*0.4;
-      } else if (dist < r+1.5) {
+        // 沙地高度从边缘0平滑过渡到内侧 ~0.5
+        const t = (r - dist) / 2.5;
+        this.elev[y][x] = Math.max(0, 0.1 + t*0.4 + (noise2(x*0.2,y*0.2)-0.5)*0.15);
+      } else if (dist < r+2.5) {
         this.tiles[y][x] = WATER;
-        this.elev[y][x] = -1;
+        this.elev[y][x] = 0; // 海平面统一为0, 与沙地直接相连
       }
     }
 
@@ -269,53 +271,81 @@ class Game {
     if(this.msgTimer>0)this.msgTimer--;
     this.updateUI();
   }
-  // 绘制单个等距瓦片
+  // 取网格节点(i,j)处的高度(i,j 为瓦片角点坐标, 0..MAP_W/H)
+  nodeElev(i,j){
+    const is=this.island;
+    if(i<0)i=0; if(j<0)j=0; if(i>=MAP_W)i=MAP_W-1; if(j>=MAP_H)j=MAP_H-1;
+    // 角点高度 = 周围4个瓦片高度的平均(保证相邻瓦片共享角点, 无缝)
+    let e=0,c=0;
+    if(j>0&&i>0){e+=is.elev[j-1][i-1];c++;}
+    if(j>0&&i<MAP_W){e+=is.elev[j-1][i];c++;}
+    if(j<MAP_H&&i>0){e+=is.elev[j][i-1];c++;}
+    if(j<MAP_H&&i<MAP_W){e+=is.elev[j][i];c++;}
+    return c?e/c:0;
+  }
+  // 角点转屏幕坐标
+  cornerScreen(i,j,e){
+    const sx=(i-j)*TW/2;
+    const sy=(i+j)*TH/2 - e*ELEV;
+    return {x:sx+this.W/2-this.toScreen(this.camX,this.camY).sx,
+            y:sy+this.H/2-this.toScreen(this.camX,this.camY).sy};
+  }
+  // 绘制单个等距瓦片(四角高度四边形 → 无缝缓坡)
   drawTile(x,y){
     const is=this.island;
     const t=is.tiles[y][x];
-    const e=is.elev[y][x];
     const oh=is.obsHeight[y][x];
     const vis=this.visible(x,y);
     const mem=is.memory[y][x];
     if(vis!=='near'&&vis!=='far'&&!mem)return;
 
-    const {sx,sy}=this.toScreen(x,y,e);
-    const cx=sx+this.W/2-this.toScreen(this.camX,this.camY).sx;
-    const cy=sy+this.H/2-this.toScreen(this.camX,this.camY).sy;
+    // 四角高度(共享相邻瓦片 → 无裂缝)
+    // 水面保持平面, 不被相邻陆地拉高
+    const waterFlat = (t===WATER) ? 0 : null;
+    const eNW=waterFlat!==null?waterFlat:this.nodeElev(x,y);
+    const eNE=waterFlat!==null?waterFlat:this.nodeElev(x+1,y);
+    const eSE=waterFlat!==null?waterFlat:this.nodeElev(x+1,y+1);
+    const eSW=waterFlat!==null?waterFlat:this.nodeElev(x,y+1);
+    const avgE=(eNW+eNE+eSE+eSW)/4;
+
+    const pNW=this.cornerScreen(x,y,eNW);
+    const pNE=this.cornerScreen(x+1,y,eNE);
+    const pSE=this.cornerScreen(x+1,y+1,eSE);
+    const pSW=this.cornerScreen(x,y+1,eSW);
+    const cx=(pNW.x+pSE.x)/2, cy=(pNW.y+pSE.y)/2;
 
     // 瓦片颜色(按高度着色 → 缓坡感)
     let color;
     if(vis==='near'||vis==='far'){
       switch(t){
-        case WATER: color = e<0 ? '#1a4a6a' : '#2a6a9a'; break;
-        case GRASS: { const shade=Math.min(1,Math.max(0,e/4)); color=lerpColor('#2a5e32','#6aaa4a',shade); break; }
-        case SAND: color='#c8b478'; break;
+        case WATER: color = '#2a6a9a'; break;
+        case GRASS: { const shade=Math.min(1,Math.max(0,avgE/4)); color=lerpColor('#2a5e32','#6aaa4a',shade); break; }
+        case SAND: color=lerpColor('#c8b478','#b8a468',Math.min(1,avgE)); break;
         case ROCK: color='#8a7e72'; break;
-        case TREE: color=lerpColor('#2a5e32','#6aaa4a',Math.min(1,e/4)); break;
+        case TREE: color=lerpColor('#2a5e32','#6aaa4a',Math.min(1,avgE/4)); break;
         case HOME: color='#3c8246'; break;
       }
     } else { color='#1e232d'; }
 
-    // 画菱形瓦片
+    // 画四角四边形(轻微外扩0.5px覆盖亚像素缝隙)
     this.ctx.fillStyle=color;
     this.ctx.beginPath();
-    this.ctx.moveTo(cx,cy-TH/2);
-    this.ctx.lineTo(cx+TW/2,cy);
-    this.ctx.lineTo(cx,cy+TH/2);
-    this.ctx.lineTo(cx-TW/2,cy);
+    this.ctx.moveTo(pNW.x, pNW.y);
+    this.ctx.lineTo(pNE.x, pNE.y);
+    this.ctx.lineTo(pSE.x, pSE.y);
+    this.ctx.lineTo(pSW.x, pSW.y);
     this.ctx.closePath();
     this.ctx.fill();
 
-    // 矮处的柔和阴影(缓坡阴影,非硬边)
-    if(vis==='near'||vis==='far'){
-      this.ctx.fillStyle='rgba(0,0,0,0.12)';
+    // 水波纹(仅水面)
+    if(t===WATER&&(vis==='near'||vis==='far')){
+      this.ctx.strokeStyle='rgba(255,255,255,0.12)';
+      this.ctx.lineWidth=1;
+      const w=Math.sin((x+y)*0.5+this.dayTime*0.1)*2;
       this.ctx.beginPath();
-      this.ctx.moveTo(cx,cy+TH/2);
-      this.ctx.lineTo(cx+TW/2,cy);
-      this.ctx.lineTo(cx+TW/2,cy+4);
-      this.ctx.lineTo(cx,cy+TH/2+4);
-      this.ctx.closePath();
-      this.ctx.fill();
+      this.ctx.moveTo((pNW.x+pSW.x)/2+w,(pNW.y+pSW.y)/2);
+      this.ctx.lineTo((pNE.x+pSE.x)/2+w,(pNE.y+pSE.y)/2);
+      this.ctx.stroke();
     }
 
     // 障碍物
