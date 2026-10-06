@@ -750,6 +750,7 @@ class Game{
     this.camX=this.player.x;this.camY=this.player.y;
     this.dayTime=0;this.moveDX=0;this.moveDY=0;
     this.jumpQueued=false;this.throwQueued=false;this.meleeQueued=false;this.meleeAnim=0;
+    this.moveTarget=null; // 双击移动目标点
     this.animals=[];this.spears_flying=[];this.traps=[];this.fires=[];this.tracks=[];this.howlEffects=[];this.pickups=[];
     // === B: 气味云 + 粪便 ===
     this.scents=[];this.droppings=[];this.scentT=0;
@@ -1030,8 +1031,13 @@ class Game{
         return;
       }
     }
-    // 落地转向
-    this.handleSingleClick(sx,sy);
+    // 无活体猎物/尸体/水/矿石 → 走向目标点
+    const dx=w.x-this.player.x,dy=w.y-this.player.y;
+    const dist=Math.hypot(dx,dy);
+    if(dist>0.5){
+      this.moveTarget={x:w.x,y:w.y};
+      this.showMsg('走向目标...');
+    }
   }
   // === 右键: 投矛 ===
   handleThrowAt(sx,sy){
@@ -1458,6 +1464,13 @@ class Game{
   update(dt){
     let{dx,dy}=this.getKeys();
     if(dx===0&&dy===0){dx=this.moveDX;dy=this.moveDY;}
+    // === 双击移动: 无键盘输入时自动走向moveTarget ===
+    if(dx===0&&dy===0&&this.moveTarget){
+      const mdx=this.moveTarget.x-this.player.x,mdy=this.moveTarget.y-this.player.y;
+      const mdist=Math.hypot(mdx,mdy);
+      if(mdist<0.4){this.moveTarget=null;this.showMsg('到达目标');}
+      else{dx=mdx/mdist;dy=mdy/mdist;}
+    }else if(dx!==0||dy!==0){this.moveTarget=null;} // 键盘操作取消自动移动
     const len=Math.hypot(dx,dy);
     if(len>0.1){dx/=len;dy/=len;this.player.faceX=dx;this.player.faceY=dy;this.player.facing=Math.atan2(dy,dx);}
     else{dx=0;dy=0;}
