@@ -1310,6 +1310,18 @@ class Game{
   }
   nodeElev(i,j){const is=this.island;if(i<0)i=0;if(j<0)j=0;if(i>=MAP_W)i=MAP_W-1;if(j>=MAP_H)j=MAP_H-1;let e=0,c=0;if(j>0&&i>0){e+=is.elev[j-1][i-1];c++;}if(j>0&&i<MAP_W){e+=is.elev[j-1][i];c++;}if(j<MAP_H&&i>0){e+=is.elev[j][i-1];c++;}if(j<MAP_H&&i<MAP_W){e+=is.elev[j][i];c++;}return c?e/c:0;}
   cornerScreen(i,j,e){const sx=(i-j)*TW/2,sy=(i+j)*TH/2-e*ELEV;return{x:sx+this.W/2-this.toScreen(this.camX,this.camY).sx,y:sy+this.H/2-this.toScreen(this.camX,this.camY).sy};}
+  // 地形类型→过渡色基准(用于边缘融合)
+  _blendColor(nt){
+    switch(nt){
+      case WATER:return '#2a5a7a';
+      case GRASS:return '#4a8a3a';
+      case SAND:return '#c8b478';
+      case ROCK:return '#8a7e72';
+      case TREE:return '#3a6a2a';
+      case HOME:return '#3c8246';
+      default:return null;
+    }
+  }
   drawTile(x,y){
     const is=this.island;const t=is.tiles[y][x];const oh=is.obsHeight[y][x];
     const vis=this.visible(x,y);const mem=is.memory[y][x];
@@ -1353,41 +1365,101 @@ class Game{
     ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();
     // === 子格子色斑: 基于世界坐标连续噪声, 同类型区域融合看不出格子 ===
     if(vis==='near'||vis==='far'){
-      const f=0.3;
+      const f=0.28;
+      // 第一层: 大色斑(暗/亮), 建立区域色差基调
       for(let i=0;i<2;i++){
         const sn1=is.texN1(x*f+i*11,y*f);
         const sn2=is.texN2(x*f,y*f+i*11);
-        const sx=cx+(sn1-0.5)*TW*0.75;
-        const sy=cy+(sn2-0.5)*TH*0.75;
-        const sr=7+is.texN1(x*f*2,y*f*2+i*5)*7;
+        const sx=cx+(sn1-0.5)*TW*0.8;
+        const sy=cy+(sn2-0.5)*TH*0.8;
+        const sr=8+is.texN1(x*f*2,y*f*2+i*5)*8;
         const dk=is.texN2(x*f+i*5,y*f+i*5)>0.5;
-        ctx.fillStyle=dk?lerpColor(color,'#000',0.12):lerpColor(color,'#fff',0.1);
-        ctx.globalAlpha=0.35;
+        ctx.fillStyle=dk?lerpColor(color,'#000',0.14):lerpColor(color,'#fff',0.12);
+        ctx.globalAlpha=0.38;
+        ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();
+      }
+      // 第二层: 小色斑(微调), 增加表面颗粒感
+      const f2=0.6;
+      for(let i=0;i<3;i++){
+        const sn1=is.texN1(x*f2+i*7,y*f2);
+        const sn2=is.texN2(x*f2,y*f2+i*7);
+        const sx=cx+(sn1-0.5)*TW*0.45;
+        const sy=cy+(sn2-0.5)*TH*0.45;
+        const sr=3+is.texN1(x*f2*3,y*f2*3+i*3)*3;
+        const dk=is.texN2(x*f2+i*3,y*f2+i*3)>0.5;
+        ctx.fillStyle=dk?lerpColor(color,'#000',0.08):lerpColor(color,'#fff',0.06);
+        ctx.globalAlpha=0.3;
         ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();
       }
       ctx.globalAlpha=1;
-      // === 边缘过渡: 不同类型交界处画半透明邻居色, 柔化边界 ===
+      // === 草地土壤裸露斑块(低洼处露土) ===
+      if(t===GRASS||t===TREE){
+        const sn=is.texN2(x*0.15,y*0.15);
+        if(sn<0.15&&avgE<1.2){
+          ctx.fillStyle=lerpColor('#6a5a3a','#8a7a5a',is.texN1(x*0.3,y*0.3));
+          ctx.globalAlpha=0.35;
+          ctx.beginPath();ctx.ellipse(cx,cy,TW*0.3,TH*0.3,0,0,Math.PI*2);ctx.fill();
+          ctx.globalAlpha=1;
+        }
+      }
+      // === 沙地颗粒纹理 ===
+      if(t===SAND){
+        const f3=0.8;
+        ctx.fillStyle='rgba(120,100,60,0.18)';
+        for(let i=0;i<4;i++){
+          const sn1=is.texN1(x*f3+i*13,y*f3);
+          const sn2=is.texN2(x*f3,y*f3+i*13);
+          const sx=cx+(sn1-0.5)*TW*0.4;
+          const sy=cy+(sn2-0.5)*TH*0.4;
+          ctx.beginPath();ctx.arc(sx,sy,1.2,0,Math.PI*2);ctx.fill();
+        }
+      }
+      // === 水面反光斑点 ===
+      if(t===WATER){
+        const f3=0.5;
+        for(let i=0;i<2;i++){
+          const sn1=is.texN1(x*f3+i*9,y*f3);
+          const sn2=is.texN2(x*f3,y*f3+i*9);
+          const sx=cx+(sn1-0.5)*TW*0.5;
+          const sy=cy+(sn2-0.5)*TH*0.5;
+          const sparkle=Math.sin(this.dayTime*0.3+sn1*6)>0.3;
+          if(sparkle){
+            ctx.fillStyle='rgba(200,230,255,0.18)';
+            ctx.beginPath();ctx.arc(sx,sy,2+sn2*2,0,Math.PI*2);ctx.fill();
+          }
+        }
+      }
+      // === 边缘过渡: 不同类型交界处画方向感知椭圆, 仿帝国时代自然过渡 ===
       const edges=[
-        {mx:(fNW.x+fNE.x)*0.5,my:(fNW.y+fNE.y)*0.5,nt:(y>0?is.tiles[y-1][x]:t)},
-        {mx:(fNE.x+fSE.x)*0.5,my:(fNE.y+fSE.y)*0.5,nt:(x<MAP_W-1?is.tiles[y][x+1]:t)},
-        {mx:(fSE.x+fSW.x)*0.5,my:(fSE.y+fSW.y)*0.5,nt:(y<MAP_H-1?is.tiles[y+1][x]:t)},
-        {mx:(fSW.x+fNW.x)*0.5,my:(fSW.y+fNW.y)*0.5,nt:(x>0?is.tiles[y][x-1]:t)},
+        {mx:(fNW.x+fNE.x)*0.5,my:(fNW.y+fNE.y)*0.5,nt:(y>0?is.tiles[y-1][x]:t),dx:0,dy:-1},
+        {mx:(fNE.x+fSE.x)*0.5,my:(fNE.y+fSE.y)*0.5,nt:(x<MAP_W-1?is.tiles[y][x+1]:t),dx:1,dy:0},
+        {mx:(fSE.x+fSW.x)*0.5,my:(fSE.y+fSW.y)*0.5,nt:(y<MAP_H-1?is.tiles[y+1][x]:t),dx:0,dy:1},
+        {mx:(fSW.x+fNW.x)*0.5,my:(fSW.y+fNW.y)*0.5,nt:(x>0?is.tiles[y][x-1]:t),dx:-1,dy:0},
       ];
-      ctx.globalAlpha=0.28;
+      // 对角邻居(用于角落过渡)
+      const corners=[
+        {mx:fNE.x,my:fNE.y,nt:(y>0&&x<MAP_W-1?is.tiles[y-1][x+1]:t),dx:1,dy:-1},
+        {mx:fSE.x,my:fSE.y,nt:(y<MAP_H-1&&x<MAP_W-1?is.tiles[y+1][x+1]:t),dx:1,dy:1},
+        {mx:fSW.x,my:fSW.y,nt:(y<MAP_H-1&&x>0?is.tiles[y+1][x-1]:t),dx:-1,dy:1},
+        {mx:fNW.x,my:fNW.y,nt:(y>0&&x>0?is.tiles[y-1][x-1]:t),dx:-1,dy:-1},
+      ];
+      ctx.globalAlpha=0.32;
       for(const e of edges){
         if(e.nt===t)continue;
-        let nc;
-        switch(e.nt){
-          case WATER:nc='#2a5a7a';break;
-          case GRASS:nc='#4a8a3a';break;
-          case SAND:nc='#c8b478';break;
-          case ROCK:nc='#8a7e72';break;
-          case TREE:nc='#3a6a2a';break;
-          case HOME:nc='#3c8246';break;
-          default:continue;
-        }
+        const nc=this._blendColor(e.nt);
+        if(!nc)continue;
+        const ang=Math.atan2(e.dy,e.dx);
         ctx.fillStyle=nc;
-        ctx.beginPath();ctx.arc(e.mx,e.my,7,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(e.mx,e.my,9,5,ang,0,Math.PI*2);ctx.fill();
+      }
+      // 角落过渡(更淡)
+      ctx.globalAlpha=0.2;
+      for(const e of corners){
+        if(e.nt===t)continue;
+        const nc=this._blendColor(e.nt);
+        if(!nc)continue;
+        ctx.fillStyle=nc;
+        ctx.beginPath();ctx.arc(e.mx,e.my,5,0,Math.PI*2);ctx.fill();
       }
       ctx.globalAlpha=1;
     }
