@@ -28,6 +28,7 @@
   .btn { position: fixed; width: 56px; height: 56px; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: none; }
   .btn:active { filter: brightness(1.3); }
   #btn-throw { right: 25px; bottom: calc(270px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.6); color: #fff0c8; }
+  #btn-melee { right: 90px; bottom: calc(340px + env(safe-area-inset-bottom, 0)); background: rgba(100,50,30,0.85); border: 2px solid rgba(220,120,60,0.6); color: #ffd8c0; }
   #btn-jump { right: 90px; bottom: calc(270px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.85); border: 2px solid rgba(180,150,255,0.5); color: #e0d8ff; }
   #btn-fish { right: 90px; bottom: calc(200px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.85); border: 2px solid rgba(100,180,255,0.5); color: #c8e8ff; }
   #btn-collect { right: 25px; bottom: calc(200px + env(safe-area-inset-bottom, 0)); background: rgba(40,90,60,0.85); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; }
@@ -44,11 +45,12 @@
   <div class="bar-wrap"><span>耐力</span><div class="bar"><div id="stam-fill" class="fill stam-fill" style="width:100%"></div></div><span id="stam-val">100</span></div>
   <div class="bar-wrap"><span>饥饱</span><div class="bar"><div id="hunger-fill" class="fill hunger-fill" style="width:100%"></div></div><span id="hunger-val">100</span></div>
   <div class="stat">包:<span id="inv">皮0肉0木0晶0鱼0</span></div>
-  <div class="stat">矛:<span id="spears">3</span></div>
+  <div class="stat">矛:<span id="spears">3</span> 斧:<span id="axes">1</span></div>
 </div>
 <div id="daynight-bar"><div class="dn-day"></div><div class="dn-night"></div><div class="dn-icon" id="dn-icon">☀</div><div class="dn-label" id="dn-label">白天</div></div>
-<div class="hint">摇杆移动定朝向 · 黄线=矛射程 · 动物远处吃草近处逃/追</div>
+<div class="hint">摇杆定朝向 · 黄线=矛射程 · 近战扇形劈砍 · 远投近砍</div>
 <div id="joystick"><div id="stick"></div></div>
+<div class="btn" id="btn-melee">石斧</div>
 <div class="btn" id="btn-throw">投矛</div>
 <div class="btn" id="btn-jump">跳</div>
 <div class="btn" id="btn-fish">捕鱼</div>
@@ -75,6 +77,11 @@ const STAM_MOVE_DRAIN = 0.4;
 const SPEAR_SPEED = 9;
 const SPEAR_RANGE = 7;
 const SPEAR_DMG = 22;
+const MELEE_RANGE = 1.8;
+const MELEE_DMG = 18;
+const MELEE_CD = 0.6;
+const MELEE_STAM = 8;
+const MELEE_ARC = Math.PI/3; // 攻击扇形半角
 const DEER_HP = 55, DEER_SPEED = 4.6;
 const WOLF_HP = 85, WOLF_SPEED = 4.0;
 const WOLF_DMG = 12;
@@ -263,7 +270,7 @@ class Spear {
 class Player {
   constructor(x,y){this.x=x;this.y=y;this.hp=PLAYER_MAX_HP;this.stamina=PLAYER_MAX_STAM;this.hunger=100;
     this.inv={crystal:0,hide:0,wood:0,fish:0,meat:0};this.storage={crystal:0,hide:0,wood:0,fish:0,meat:0};
-    this.spears=3;this.faceX=0;this.faceY=1;this.facing=0;this.invuln=0;}
+    this.spears=3;this.axes=1;this.faceX=0;this.faceY=1;this.facing=0;this.invuln=0;this.meleeCd=0;}
   getHeight(island){return island.getElevAt(this.x,this.y);}
   collect(island){const ix=Math.round(this.x),iy=Math.round(this.y);const k=`${ix},${iy}`;if(k in island.resources){const r=island.resources[k];delete island.resources[k];this.inv[r]++;return r;}return null;}
   deposit(){for(const k in this.inv){this.storage[k]+=this.inv[k];this.inv[k]=0;}}
@@ -278,7 +285,8 @@ class Game {
     this.player=new Player(this.island.home.x,this.island.home.y);
     this.camX=this.player.x;this.camY=this.player.y;
     this.dayTime=0;this.moveDX=0;this.moveDY=0;
-    this.jumpQueued=false;this.throwQueued=false;
+    this.jumpQueued=false;this.throwQueued=false;this.meleeQueued=false;
+    this.meleeAnim=0;
     this.animals=[];this.spears_flying=[];
     this.spawnAnimals(8,6);
     this.msg='';this.msgTimer=0;
@@ -303,6 +311,7 @@ class Game {
     const bid=(id,fn)=>document.getElementById(id).addEventListener('touchstart',e=>{e.preventDefault();fn.call(this);});
     bid('btn-jump',()=>this.jumpQueued=true);
     bid('btn-throw',()=>this.throwQueued=true);
+    bid('btn-melee',()=>this.meleeQueued=true);
     bid('btn-fish',()=>this.doFish());
     bid('btn-collect',()=>this.doCollect());
     bid('btn-deposit',()=>this.doDeposit());
@@ -310,7 +319,7 @@ class Game {
     bid('btn-craft',()=>this.doCraft());
     bid('btn-sleep',()=>this.doSleep());
     const keys={};
-    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();if(e.key==='t')this.doSleep();});
+    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='k')this.meleeQueued=true;if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();if(e.key==='t')this.doSleep();});
     window.addEventListener('keyup',e=>keys[e.key]=false);
     this.getKeys=()=>{let dx=0,dy=0;if(keys['ArrowUp']||keys['w'])dy-=1;if(keys['ArrowDown']||keys['s'])dy+=1;if(keys['ArrowLeft']||keys['a'])dx-=1;if(keys['ArrowRight']||keys['d'])dx+=1;return{dx,dy};};
   }
@@ -322,6 +331,35 @@ class Game {
     let dx=p.faceX,dy=p.faceY;const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
     this.spears_flying.push(new Spear(p.x,p.y,dx,dy));
     this.showMsg('投出长矛!');this.updateUI();
+  }
+  doMelee(){
+    const p=this.player;
+    if(p.axes<=0){this.showMsg('没有石斧! 木+石可制作');return;}
+    if(p.meleeCd>0)return;
+    if(p.stamina<MELEE_STAM){this.showMsg('耐力不足');return;}
+    p.stamina-=MELEE_STAM;p.meleeCd=MELEE_CD;
+    this.meleeAnim=0.25; // 攻击动画
+    // 扇形范围内的动物全部命中
+    let hitAny=false;
+    for(const a of this.animals){
+      if(a.state==='dead')continue;
+      const dx=a.x-p.x,dy=a.y-p.y;
+      const dist=Math.hypot(dx,dy);
+      if(dist<=MELEE_RANGE){
+        const ang=Math.atan2(dy,dx);
+        let diff=ang-p.facing;
+        while(diff>Math.PI)diff-=Math.PI*2;
+        while(diff<-Math.PI)diff+=Math.PI*2;
+        if(Math.abs(diff)<=MELEE_ARC){
+          a.takeDmg(MELEE_DMG);
+          hitAny=true;
+          const names={deer:'鹿',wolf:'狼'};
+          this.showMsg(`石斧命中${names[a.type]}! ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp}`);
+        }
+      }
+    }
+    if(!hitAny)this.showMsg('挥空!');
+    this.updateUI();
   }
   doCollect(){
     // 先尝试采集动物尸体
@@ -347,7 +385,7 @@ class Game {
     else this.showMsg('没食物! 去打猎/捕鱼');
     this.updateUI();
   }
-  doCraft(){const p=this.player;if(p.inv.wood>=1&&p.inv.crystal>=1){p.inv.wood--;p.inv.crystal--;p.spears+=2;this.showMsg('制作长矛 x2');}else this.showMsg('需要 木材+水晶 各1');this.updateUI();}
+  doCraft(){const p=this.player;if(p.inv.wood>=1&&p.inv.crystal>=1){p.inv.wood--;p.inv.crystal--;p.spears+=1;p.axes+=1;this.showMsg('制作 长矛+1 石斧+1');}else this.showMsg('需要 木材+水晶 各1');this.updateUI();}
   doSleep(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.hp=Math.min(PLAYER_MAX_HP,this.player.hp+30);this.player.stamina=PLAYER_MAX_STAM;this.dayTime=(this.dayTime+35)%100;this.showMsg('睡了一觉 恢复精力');}else this.showMsg('回营地才能睡');this.updateUI();}
   showMsg(t){this.msg=t;this.msgTimer=100;}
   visible(x,y){const d=Math.hypot(x-this.player.x,y-this.player.y);if(d<=VISION_NEAR)return'near';if(d<=VISION_FAR)return'far';return null;}
@@ -374,6 +412,9 @@ class Game {
     }
     this.jumpQueued=false;
     if(this.throwQueued){this.doThrow();this.throwQueued=false;}
+    if(this.meleeQueued){this.doMelee();this.meleeQueued=false;}
+    if(this.player.meleeCd>0)this.player.meleeCd-=dt;
+    if(this.meleeAnim>0)this.meleeAnim-=dt;
 
     // 耐力恢复(静止时快)
     if(dx===0&&dy===0)this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*1.5*dt);
@@ -554,6 +595,38 @@ class Game {
       ctx.fillStyle=this.throwQueued?'rgba(255,200,80,0.5)':'rgba(255,200,80,0.2)';
       ctx.beginPath();ctx.arc(ex,ey,this.throwQueued?8:5,0,Math.PI*2);ctx.fill();
     }
+    // 近战扇形提示(有斧且耐力够时显示)
+    if(this.player.axes>0&&this.player.stamina>=MELEE_STAM){
+      ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);
+      const r=MELEE_RANGE*TW*0.5; // 等距下半径近似
+      const alpha=this.meleeQueued?0.35:(this.meleeAnim>0?0.5:0.12);
+      ctx.fillStyle=`rgba(255,120,60,${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(0,0);
+      ctx.arc(0,0,r,-MELEE_ARC,MELEE_ARC);
+      ctx.closePath();ctx.fill();
+      ctx.strokeStyle=`rgba(255,150,80,${this.meleeQueued?0.8:0.3})`;
+      ctx.lineWidth=this.meleeQueued?2:1;
+      ctx.stroke();
+      ctx.restore();
+    }
+    // 挥砍动画(石斧弧线)
+    if(this.meleeAnim>0){
+      const prog=1-this.meleeAnim/0.25;
+      ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);
+      const swingAng=-MELEE_ARC+prog*MELEE_ARC*2;
+      const r=MELEE_RANGE*TW*0.5;
+      ctx.strokeStyle=`rgba(255,200,120,${1-prog})`;
+      ctx.lineWidth=3;
+      ctx.beginPath();
+      ctx.arc(0,0,r*0.6,swingAng-0.3,swingAng+0.3);
+      ctx.stroke();
+      // 斧头
+      const ax=Math.cos(swingAng)*r*0.7,ay=Math.sin(swingAng)*r*0.7;
+      ctx.fillStyle=`rgba(200,180,160,${1-prog})`;
+      ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+    }
     // 身体(圆形+朝向"鼻")
     const invuln=this.player.invuln>0&&Math.floor(this.player.invuln*10)%2;
     ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);
@@ -587,6 +660,7 @@ class Game {
     document.getElementById('hunger-val').textContent=Math.floor(p.hunger);
     document.getElementById('inv').textContent=`皮${p.inv.hide}肉${p.inv.meat}木${p.inv.wood}晶${p.inv.crystal}鱼${p.inv.fish}`;
     document.getElementById('spears').textContent=p.spears;
+    document.getElementById('axes').textContent=p.axes;
     const icon=document.getElementById('dn-icon'),label=document.getElementById('dn-label');
     if(this.dayTime<50){icon.textContent='☀';icon.style.left=(this.dayTime/50*50)+'%';label.textContent='白天';}
     else{icon.textContent='🌙';icon.style.left=(50+(this.dayTime-50)/50*50)+'%';label.textContent='黑夜';}
