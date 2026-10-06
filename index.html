@@ -1028,6 +1028,12 @@ class Game{
         this.showMsg('走向矿石...');
         return;
       }
+      if(t===TREE){
+        // 走到树旁砍树
+        this.moveTarget={x:tx,y:ty,action:'chop',range:1.4,tx,ty};
+        this.showMsg('走向树木...');
+        return;
+      }
     }
     // 无活体猎物/尸体/水/矿石 → 走向目标点
     const dx=w.x-this.player.x,dy=w.y-this.player.y;
@@ -1473,6 +1479,15 @@ class Game{
         if(mt.action==='collect')this.doCollect();
         else if(mt.action==='fish')this.doFish();
         else if(mt.action==='mine')this.mineRock(mt.tx,mt.ty);
+        else if(mt.action==='chop'){
+          // 转向树木并挥斧
+          const cx=mt.tx+0.5,cy=mt.ty+0.5;
+          const ddx=cx-this.player.x,ddy=cy-this.player.y;
+          const len=Math.hypot(ddx,ddy)||1;
+          this.player.faceX=ddx/len;this.player.faceY=ddy/len;
+          this.player.facing=Math.atan2(ddy,ddx);
+          this.meleeQueued=true;
+        }
         else if(mt.action==='melee'&&mt.target&&mt.target.state!=='dead'){
           // 转向目标并近战
           const t=mt.target;
