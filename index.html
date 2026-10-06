@@ -996,7 +996,7 @@ class Game{
     this.player.faceX=dx/len;this.player.faceY=dy/len;
     this.player.facing=Math.atan2(dy,dx);
   }
-  // === 双击: 近战/采集/捕鱼 ===
+  // === 双击: 近战/采集/捕鱼/采矿 ===
   handleDoubleClick(sx,sy){
     const w=this.screenToWorld(sx,sy);
     const a=this.findAnimalAt(w.x,w.y);
@@ -1011,23 +1011,24 @@ class Game{
     }
     const c=this.findCorpseAt(w.x,w.y);
     if(c){
-      // 采集尸体
-      this.doCollect();
+      // 走到尸体旁采集
+      this.moveTarget={x:c.x,y:c.y,action:'collect',range:1.2};
+      this.showMsg('走向尸体...');
       return;
     }
     const tx=Math.round(w.x),ty=Math.round(w.y);
     if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H){
       const t=this.island.tiles[ty][tx];
       if(t===WATER){
-        // 双击水面→捕鱼/喝水(根据距离)
-        const pd=Math.hypot(tx-this.player.x,ty-this.player.y);
-        if(pd<3)this.doFish();
-        else this.showMsg('太远了, 靠近水域');
+        // 走到水边捕鱼
+        this.moveTarget={x:tx,y:ty,action:'fish',range:2.5};
+        this.showMsg('走向水边...');
         return;
       }
       if(t===ROCK){
-        // 双击矿石→采集
-        this.mineRock(tx,ty);
+        // 走到矿石旁采矿
+        this.moveTarget={x:tx,y:ty,action:'mine',range:2.5,tx,ty};
+        this.showMsg('走向矿石...');
         return;
       }
     }
@@ -1468,8 +1469,14 @@ class Game{
     if(dx===0&&dy===0&&this.moveTarget){
       const mdx=this.moveTarget.x-this.player.x,mdy=this.moveTarget.y-this.player.y;
       const mdist=Math.hypot(mdx,mdy);
-      if(mdist<0.4){this.moveTarget=null;this.showMsg('到达目标');}
-      else{dx=mdx/mdist;dy=mdy/mdist;}
+      const range=this.moveTarget.range||0.4;
+      if(mdist<range){
+        // 到达目标, 执行动作
+        const mt=this.moveTarget;this.moveTarget=null;
+        if(mt.action==='collect')this.doCollect();
+        else if(mt.action==='fish')this.doFish();
+        else if(mt.action==='mine')this.mineRock(mt.tx,mt.ty);
+      }else{dx=mdx/mdist;dy=mdy/mdist;}
     }else if(dx!==0||dy!==0){this.moveTarget=null;} // 键盘操作取消自动移动
     const len=Math.hypot(dx,dy);
     if(len>0.1){dx/=len;dy/=len;this.player.faceX=dx;this.player.faceY=dy;this.player.facing=Math.atan2(dy,dx);}
