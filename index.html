@@ -1029,8 +1029,8 @@ class Game{
         return;
       }
       if(t===TREE){
-        // 走到树旁砍树
-        this.moveTarget={x:tx,y:ty,action:'chop',range:1.4,tx,ty};
+        // 走到树旁砍树(目标用树中心, range放宽到1.6便于对角接近)
+        this.moveTarget={x:tx+0.5,y:ty+0.5,action:'chop',range:1.6,tx,ty};
         this.showMsg('走向树木...');
         return;
       }
@@ -1170,6 +1170,35 @@ class Game{
     this.spears_flying.push(new Spear(p.x,p.y,dx,dy,w.spearDmg,w.color,w.spearType));
     this.showMsg('投出'+w.name+'矛!');this.playSound('throw');this.updateUI();
   }
+  // 砍树: 给定树木格坐标(不依赖朝向, 用于双击自动走到树旁后调用)
+  _chopTreeAt(tx,ty){
+    if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H)return false;
+    if(this.island.tiles[ty][tx]!==TREE){this.showMsg('这里没有树');return false;}
+    const p=this.player,w=p.getWeapon();
+    if(p.axes<=0){this.showMsg('没有武器!');return false;}
+    if(p.meleeCd>0){this.showMsg('冷却中...');return false;}
+    if(p.stamina<w.meleeStam){this.showMsg('耐力不足');return false;}
+    if(!p.getPosture().canAttack){this.showMsg('卧倒中无法砍树, 请起身');return false;}
+    p.stamina-=w.meleeStam;p.meleeCd=MELEE_CD;this.meleeAnim=0.25;
+    // 转向树木
+    const cx=tx+0.5,cy=ty+0.5;
+    const ddx=cx-p.x,ddy=cy-p.y;const len=Math.hypot(ddx,ddy)||1;
+    p.faceX=ddx/len;p.faceY=ddy/len;p.facing=Math.atan2(ddy,ddx);
+    this.island.obsHeight[ty][tx]--;
+    if(this.island.obsHeight[ty][tx]<=0){
+      const wood=2+Math.floor(Math.random()*2);
+      this.island.tiles[ty][tx]=GRASS;
+      this.island.obsHeight[ty][tx]=0;
+      p.inv.wood+=wood;
+      this.showMsg(`砍倒树! 木材+${wood}`);
+      this.playSound('collect');
+    } else {
+      this.showMsg('砍树... 剩 '+this.island.obsHeight[ty][tx]);
+      this.playSound('hit');
+    }
+    this.updateUI();
+    return true;
+  }
   doMelee(){
     const p=this.player,w=p.getWeapon();
     if(!p.getPosture().canAttack){this.showMsg('卧倒中无法近战, 请起身');return;}
@@ -1181,17 +1210,7 @@ class Game{
     const ttx=Math.round(p.x+Math.cos(p.facing)*1.0);
     const tty=Math.round(p.y+Math.sin(p.facing)*1.0);
     if(ttx>=0&&ttx<MAP_W&&tty>=0&&tty<MAP_H&&this.island.tiles[tty][ttx]===TREE){
-      this.island.obsHeight[tty][ttx]--;
-      if(this.island.obsHeight[tty][ttx]<=0){
-        const wood=2+Math.floor(Math.random()*2);
-        this.island.tiles[tty][ttx]=GRASS;
-        this.island.obsHeight[tty][ttx]=0;
-        p.inv.wood+=wood;
-        this.showMsg(`砍倒树! 木材+${wood}`);
-      } else {
-        this.showMsg('砍树... '+this.island.obsHeight[tty][ttx]+' hits');
-      }
-      this.updateUI();
+      this._chopTreeAt(ttx,tty);
       return;
     }
     let hitAny=false;
@@ -1470,31 +1489,24 @@ class Game{
     if(dx===0&&dy===0){dx=this.moveDX;dy=this.moveDY;}
     // === 双击移动: 无键盘输入时自动走向moveTarget ===
     if(dx===0&&dy===0&&this.moveTarget){
-      const mdx=this.moveTarget.x-this.player.x,mdy=this.moveTarget.y-this.player.y;
+      const mt=this.moveTarget;
+      const mdx=mt.x-this.player.x,mdy=mt.y-this.player.y;
       const mdist=Math.hypot(mdx,mdy);
-      const range=this.moveTarget.range||0.4;
+      const range=mt.range||0.4;
       if(mdist<range){
         // 到达目标, 执行动作
-        const mt=this.moveTarget;this.moveTarget=null;
+        this.moveTarget=null;
         if(mt.action==='collect')this.doCollect();
         else if(mt.action==='fish')this.doFish();
         else if(mt.action==='mine')this.mineRock(mt.tx,mt.ty);
-        else if(mt.action==='chop'){
-          // 转向树木并挥斧
-          const cx=mt.tx+0.5,cy=mt.ty+0.5;
-          const ddx=cx-this.player.x,ddy=cy-this.player.y;
-          const len=Math.hypot(ddx,ddy)||1;
-          this.player.faceX=ddx/len;this.player.faceY=ddy/len;
-          this.player.facing=Math.atan2(ddy,ddx);
-          this.meleeQueued=true;
-        }
+        else if(mt.action==='chop')this._chopTreeAt(mt.tx,mt.ty);
         else if(mt.action==='melee'&&mt.target&&mt.target.state!=='dead'){
           // 转向目标并近战
           const t=mt.target;
-          const dx=t.x-this.player.x,dy=t.y-this.player.y;
-          const len=Math.hypot(dx,dy)||1;
-          this.player.faceX=dx/len;this.player.faceY=dy/len;
-          this.player.facing=Math.atan2(dy,dx);
+          const ddx=t.x-this.player.x,ddy=t.y-this.player.y;
+          const len=Math.hypot(ddx,ddy)||1;
+          this.player.faceX=ddx/len;this.player.faceY=ddy/len;
+          this.player.facing=Math.atan2(ddy,ddx);
           this.meleeQueued=true;
         }
       }else{
@@ -1505,7 +1517,13 @@ class Game{
           // 目标已死, 自动采集
           mt.action='collect';mt.range=1.2;
         }
-        dx=mdx/mdist;dy=mdy/mdist;
+        // 卡死检测: 玩家长时间无法接近目标(被地形卡住) → 取消
+        mt.stuckT=(mt.stuckT||0)+dt;
+        const moved=Math.hypot(this.player.x-(mt.lastX??this.player.x),this.player.y-(mt.lastY??this.player.y));
+        if(moved>0.001)mt.stuckT=0;
+        mt.lastX=this.player.x;mt.lastY=this.player.y;
+        if(mt.stuckT>2.0){this.showMsg('无法到达目标');this.moveTarget=null;}
+        else{dx=mdx/mdist;dy=mdy/mdist;}
       }
     }else if(dx!==0||dy!==0){this.moveTarget=null;} // 键盘操作取消自动移动
     const len=Math.hypot(dx,dy);
