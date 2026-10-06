@@ -103,6 +103,8 @@ const WOLF_ATTACK_WINDUP=1.5;
 // 击杀/打退其中一只(死亡或重伤逃跑), 其余狼立即flee
 // WOLF_PACK_FLEE_RADIUS限定"玩家附近的狼群", 防止远处狼也凑数一路追过来
 const WOLF_PACK_MIN=3,WOLF_PACK_FLEE_RADIUS=6;
+// 单狼被玩家逼近此距离立即反击(攻击性动物本能, 不被动挨打)
+const WOLF_MELEE_COUNTER=1.5;
 // 砍树: 每次斧砍削减1点obsHeight, 归零时倒下按原高度给木材
 const CHOP_RANGE=1.6,WOOD_PER_HGT=1;
 // 陷阱
@@ -140,7 +142,10 @@ class Island{
         else if(r<0.08){this.tiles[y][x]=ROCK;this.obsHeight[y][x]=1+Math.floor(this.rand()*2);}
       }
     }
-    for(let i=0;i<14;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if(this.tiles[y][x]===GRASS||this.tiles[y][x]===SAND)this.resources[`${x},${y}`]=['crystal','hide','wood'][Math.floor(this.rand()*3)];}
+    // 资源生成: 先保证至少4个水晶矿点(制作矛/斧的必需品), 再随机其他资源
+    let crystalCount=0;
+    for(let i=0;i<200&&crystalCount<4;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if((this.tiles[y][x]===GRASS||this.tiles[y][x]===SAND)&&!this.resources[`${x},${y}`]){this.resources[`${x},${y}`]='crystal';crystalCount++;}}
+    for(let i=0;i<14;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if((this.tiles[y][x]===GRASS||this.tiles[y][x]===SAND)&&!this.resources[`${x},${y}`])this.resources[`${x},${y}`]=['crystal','hide','wood'][Math.floor(this.rand()*3)];}
     // 矿石(稀有, 在岩石旁)
     for(let i=0;i<6;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if(this.tiles[y][x]===GRASS)this.resources[`${x},${y}`]='ore';}
     this.home={x:Math.floor(cx),y:Math.floor(cy)};
@@ -222,6 +227,10 @@ class Animal{
 
     if(this.aggressive){
       if(this.hp<this.maxHp*0.25){this.state='flee';}
+      else if(distP<WOLF_MELEE_COUNTER){
+        // 单狼被玩家逼近到近身距离, 立即反击(攻击性动物本能, 不逃跑)
+        this.state='chase';this.chaseT=Math.max(this.chaseT,WOLF_ATTACK_WINDUP);
+      }
       else if(distP<actR){
         // 群体判定: 玩家附近WOLF_PACK_FLEE_RADIUS内狼>=WOLF_PACK_MIN才主动chase, 否则仅alert威慑
         // 注意是"玩家附近"的狼数, 不是"自己附近", 防止远处大群一路追过来
