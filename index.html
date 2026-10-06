@@ -744,7 +744,16 @@ class Game{
     this.windAng=0;this.windT=0;
     // === E1: 天气系统 ===
     this.weather='clear';this.weatherT=WEATHER_MIN+Math.random()*(WEATHER_MAX-WEATHER_MIN);
+    // === 预渲染地形到离屏Canvas(静态层, 一次渲染每帧blit) ===
+    this._off=false;
+    this.terrainOffX=(MAP_H-1)*TW/2+100;
+    this.terrainOffY=100;
+    this.terrainCanvas=document.createElement('canvas');
+    this.terrainCanvas.width=(MAP_W+MAP_H)*TW/2+200;
+    this.terrainCanvas.height=(MAP_W+MAP_H)*TH/2+200;
+    this.terrainCtx=this.terrainCanvas.getContext('2d');
     this.spawnAnimals(8,6);
+    this.renderTerrain();
     this.msg='';this.msgTimer=0;this.lastTime=performance.now();
     this.setupInput();this.updateUI();
     requestAnimationFrame(()=>this.loop());
@@ -1152,7 +1161,7 @@ class Game{
     const d=Math.hypot(x-this.player.x,y-this.player.y);
     if(d<=near)return'near';if(d<=far)return'far';return null;
   }
-  updateMemory(){const px=Math.round(this.player.x),py=Math.round(this.player.y);for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){const tx=px+dx,ty=py+dy;if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H)this.island.memory[ty][tx]=true;}}
+  updateMemory(){const px=Math.round(this.player.x),py=Math.round(this.player.y);const newly=[];for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){const tx=px+dx,ty=py+dy;if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H){if(!this.island.memory[ty][tx]){this.island.memory[ty][tx]=true;newly.push({x:tx,y:ty});}}}if(newly.length>0){this._off=true;for(const t of newly)this.drawTile(t.x,t.y);this._off=false;}}
   update(dt){
     let{dx,dy}=this.getKeys();
     if(dx===0&&dy===0){dx=this.moveDX;dy=this.moveDY;}
@@ -1309,7 +1318,32 @@ class Game{
     this.updateUI();
   }
   nodeElev(i,j){const is=this.island;if(i<0)i=0;if(j<0)j=0;if(i>=MAP_W)i=MAP_W-1;if(j>=MAP_H)j=MAP_H-1;let e=0,c=0;if(j>0&&i>0){e+=is.elev[j-1][i-1];c++;}if(j>0&&i<MAP_W){e+=is.elev[j-1][i];c++;}if(j<MAP_H&&i>0){e+=is.elev[j][i-1];c++;}if(j<MAP_H&&i<MAP_W){e+=is.elev[j][i];c++;}return c?e/c:0;}
-  cornerScreen(i,j,e){const sx=(i-j)*TW/2,sy=(i+j)*TH/2-e*ELEV;return{x:sx+this.W/2-this.toScreen(this.camX,this.camY).sx,y:sy+this.H/2-this.toScreen(this.camX,this.camY).sy};}
+  cornerScreen(i,j,e){const sx=(i-j)*TW/2,sy=(i+j)*TH/2-e*ELEV;if(this._off)return{x:sx+this.terrainOffX,y:sy+this.terrainOffY};return{x:sx+this.W/2-this.toScreen(this.camX,this.camY).sx,y:sy+this.H/2-this.toScreen(this.camX,this.camY).sy};}
+  // === 预渲染整张地形到离屏Canvas(一次渲染, 每帧只blit可见区域) ===
+  renderTerrain(){
+    this._off=true;
+    const tc=this.terrainCtx;
+    tc.fillStyle='#0a0c12';tc.fillRect(0,0,this.terrainCanvas.width,this.terrainCanvas.height);
+    for(let s=0;s<=MAP_W+MAP_H-2;s++){
+      for(let x=Math.max(0,s-MAP_H+1);x<=Math.min(MAP_W-1,s);x++){const y=s-x;this.drawTile(x,y);}
+    }
+    this._off=false;
+  }
+  // === 水面动态波纹(仅可见水域, 每帧绘制) ===
+  drawWaterAnim(camSX,camSY){
+    const ctx=this.ctx;const px=Math.round(this.player.x),py=Math.round(this.player.y);
+    ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+    for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){
+      const tx=px+dx,ty=py+dy;
+      if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H)continue;
+      if(this.island.tiles[ty][tx]!==WATER)continue;
+      const e=this.island.getElevAt(tx,ty);
+      const ws=this.toScreen(tx,ty,e);
+      const sx=ws.sx+this.W/2-camSX,sy=ws.sy+this.H/2-camSY;
+      const w=Math.sin((tx+ty)*0.5+this.dayTime*0.1)*2;
+      ctx.beginPath();ctx.moveTo(sx-TW*0.25+w,sy);ctx.lineTo(sx+TW*0.25+w,sy);ctx.stroke();
+    }
+  }
   // 地形类型→过渡色基准(用于边缘融合)
   _blendColor(nt){
     switch(nt){
@@ -1324,9 +1358,10 @@ class Game{
   }
   drawTile(x,y){
     const is=this.island;const t=is.tiles[y][x];const oh=is.obsHeight[y][x];
-    const vis=this.visible(x,y);const mem=is.memory[y][x];
-    if(vis!=='near'&&vis!=='far'&&!mem)return;
-    const ctx=this.ctx;
+    let vis,mem;
+    if(this._off){mem=is.memory[y][x];vis=mem?'near':null;}
+    else{vis=this.visible(x,y);mem=is.memory[y][x];if(vis!=='near'&&vis!=='far'&&!mem)return;}
+    const ctx=this._off?this.terrainCtx:this.ctx;
     const wf=(t===WATER)?0:null;
     const eNW=wf!==null?wf:this.nodeElev(x,y),eNE=wf!==null?wf:this.nodeElev(x+1,y),eSE=wf!==null?wf:this.nodeElev(x+1,y+1),eSW=wf!==null?wf:this.nodeElev(x,y+1);
     const avgE=(eNW+eNE+eSE+eSW)/4;
@@ -1414,8 +1449,8 @@ class Game{
           ctx.beginPath();ctx.arc(sx,sy,1.2,0,Math.PI*2);ctx.fill();
         }
       }
-      // === 水面反光斑点 ===
-      if(t===WATER){
+      // === 水面反光斑点(动态, 跳过预渲染) ===
+      if(t===WATER&&!this._off){
         const f3=0.5;
         for(let i=0;i<2;i++){
           const sn1=is.texN1(x*f3+i*9,y*f3);
@@ -1479,8 +1514,8 @@ class Game{
         ctx.strokeStyle='rgba(220,240,255,0.25)';ctx.lineWidth=1.5;
         ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.stroke();
       }
-      ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;const w=Math.sin((x+y)*0.5+this.dayTime*0.1)*2;
-      ctx.beginPath();ctx.moveTo((pNW.x+pSW.x)/2+w,(pNW.y+pSW.y)/2);ctx.lineTo((pNE.x+pSE.x)/2+w,(pNE.y+pSE.y)/2);ctx.stroke();
+      if(!this._off){ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;const w=Math.sin((x+y)*0.5+this.dayTime*0.1)*2;
+      ctx.beginPath();ctx.moveTo((pNW.x+pSW.x)/2+w,(pNW.y+pSW.y)/2);ctx.lineTo((pNE.x+pSE.x)/2+w,(pNE.y+pSE.y)/2);ctx.stroke();}
     }
     if(vis==='near'||vis==='far'){
       if(t===ROCK){
@@ -1704,10 +1739,18 @@ class Game{
   }
   draw(){
     const ctx=this.ctx;ctx.fillStyle='#0a0c12';ctx.fillRect(0,0,this.W,this.H);
-    const rangeX=Math.ceil(this.W/TW)+3,rangeY=Math.ceil(this.H/TH)+6;
-    const cx0=Math.floor(this.camX)-rangeX,cx1=Math.ceil(this.camX)+rangeX;
-    const cy0=Math.floor(this.camY)-rangeY,cy1=Math.ceil(this.camY)+rangeY;
-    for(let s=cx0+cy0;s<=cx1+cy1;s++){for(let x=Math.max(cx0,s-cy1);x<=Math.min(cx1,s-cy0);x++){const y=s-x;if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H)this.drawTile(x,y);}}
+    // === 预渲染地形blit(一次渲染, 每帧只复制可见区域) ===
+    const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
+    ctx.drawImage(this.terrainCanvas,camSX-this.W/2+this.terrainOffX,camSY-this.H/2+this.terrainOffY,this.W,this.H,0,0,this.W,this.H);
+    // 视野渐变(径向暗角, 替代逐格可见性检查)
+    const ps=this.toScreen(this.player.x,this.player.y,this.player.getHeight(this.island));
+    const ppx=ps.sx+this.W/2-camSX,ppy=ps.sy+this.H/2-camSY;
+    const visR=VISION_FAR*TW*0.45;
+    const grad=ctx.createRadialGradient(ppx,ppy,visR*0.6,ppx,ppy,visR);
+    grad.addColorStop(0,'rgba(10,12,18,0)');grad.addColorStop(1,'rgba(10,12,18,0.85)');
+    ctx.fillStyle=grad;ctx.fillRect(0,0,this.W,this.H);
+    // 水面动态波纹(仅可见水域)
+    this.drawWaterAnim(camSX,camSY);
     // 陷阱(地面层)
     for(const tp of this.traps)this.drawTrap(tp);
     // 火堆(地面层, 有光效)
