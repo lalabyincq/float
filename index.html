@@ -3,443 +3,527 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>浮岛记 (Float) - 星际风格2.5D</title>
+<title>浮岛记 (Float) - 狩猎</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0c12; color: #e6e6e6; font-family: -apple-system, "PingFang SC", sans-serif; touch-action: none; user-select: none; }
   #game { display: block; width: 100vw; height: 100vh; }
-  #ui-top { position: fixed; top: env(safe-area-inset-top, 0); left: 0; right: 0; padding: 8px 12px; background: rgba(15,18,24,0.85); font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; pointer-events: none; }
-  .hunger-wrap { display: flex; align-items: center; gap: 6px; }
-  .hunger-bar { width: 120px; height: 12px; background: #333; border-radius: 6px; overflow: hidden; }
-  .hunger-fill { height: 100%; background: #e0a028; transition: width .2s; }
-  .hunger-fill.low { background: #c83828; }
+  #ui-top { position: fixed; top: env(safe-area-inset-top, 0); left: 0; right: 0; padding: 6px 10px; background: rgba(15,18,24,0.85); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; pointer-events: none; }
+  .bar-wrap { display: flex; align-items: center; gap: 4px; }
+  .bar { width: 80px; height: 10px; background: #2a2a2a; border-radius: 5px; overflow: hidden; }
+  .fill { height: 100%; transition: width .15s; }
+  .hp-fill { background: #d83838; } .hp-fill.mid { background: #e0a028; }
+  .stam-fill { background: #4ac8e0; }
+  .hunger-fill { background: #e0a028; } .hunger-fill.low { background: #c83828; }
   .stat { white-space: nowrap; }
-  #daynight-bar { position: fixed; top: calc(env(safe-area-inset-top, 0) + 52px); left: 12px; width: 200px; height: 18px; border-radius: 9px; overflow: hidden; display: flex; background: #222; pointer-events: none; }
+  #daynight-bar { position: fixed; top: calc(env(safe-area-inset-top, 0) + 44px); left: 10px; width: 160px; height: 16px; border-radius: 8px; overflow: hidden; display: flex; background: #222; pointer-events: none; }
   .dn-day { flex: 1; background: linear-gradient(90deg, #4a90c2, #f5d76e); }
   .dn-night { flex: 1; background: linear-gradient(90deg, #2c3e6b, #1a1a3e); }
-  .dn-icon { position: absolute; top: 0; height: 18px; line-height: 18px; font-size: 14px; transform: translateX(-50%); transition: left 0.3s; }
-  .dn-label { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 18px; line-height: 18px; font-size: 11px; color: #fff; text-shadow: 0 0 3px #000; }
-  .hint { position: fixed; top: calc(env(safe-area-inset-top, 0) + 95px); left: 12px; font-size: 11px; color: #888; pointer-events: none; }
-  #joystick { position: fixed; left: 30px; bottom: calc(40px + env(safe-area-inset-bottom, 0)); width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); touch-action: none; }
-  #stick { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 48px; height: 48px; border-radius: 50%; background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4); }
-  .btn { position: fixed; width: 60px; height: 60px; border-radius: 50%; background: rgba(40,90,60,0.8); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; font-size: 12px; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: none; }
-  .btn:active { background: rgba(60,140,90,0.9); }
-  #btn-jump { right: 30px; bottom: calc(210px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.8); border-color: rgba(180,150,255,0.5); }
-  #btn-fish { right: 110px; bottom: calc(140px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.8); border-color: rgba(100,180,255,0.5); }
-  #btn-collect { right: 30px; bottom: calc(140px + env(safe-area-inset-bottom, 0)); }
-  #btn-deposit { right: 110px; bottom: calc(60px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.8); border-color: rgba(220,120,120,0.5); }
-  #btn-eat { right: 30px; bottom: calc(60px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.8); border-color: rgba(220,180,80,0.5); }
+  .dn-icon { position: absolute; top: 0; height: 16px; line-height: 16px; font-size: 12px; transform: translateX(-50%); transition: left 0.3s; }
+  .dn-label { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 16px; line-height: 16px; font-size: 10px; color: #fff; text-shadow: 0 0 3px #000; }
+  .hint { position: fixed; top: calc(env(safe-area-inset-top, 0) + 80px); left: 10px; font-size: 10px; color: #888; pointer-events: none; max-width: 70vw; }
+  #joystick { position: fixed; left: 25px; bottom: calc(35px + env(safe-area-inset-bottom, 0)); width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); touch-action: none; }
+  #stick { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4); }
+  .btn { position: fixed; width: 56px; height: 56px; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .btn:active { filter: brightness(1.3); }
+  #btn-throw { right: 25px; bottom: calc(270px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.6); color: #fff0c8; }
+  #btn-jump { right: 90px; bottom: calc(270px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.85); border: 2px solid rgba(180,150,255,0.5); color: #e0d8ff; }
+  #btn-fish { right: 90px; bottom: calc(200px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.85); border: 2px solid rgba(100,180,255,0.5); color: #c8e8ff; }
+  #btn-collect { right: 25px; bottom: calc(200px + env(safe-area-inset-bottom, 0)); background: rgba(40,90,60,0.85); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; }
+  #btn-deposit { right: 90px; bottom: calc(120px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.85); border: 2px solid rgba(220,120,120,0.5); color: #ffd0d0; }
+  #btn-eat { right: 25px; bottom: calc(120px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
+  #btn-craft { right: 90px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
+  #btn-sleep { right: 25px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(40,60,50,0.85); border: 2px solid rgba(120,200,160,0.5); color: #c8ffe8; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
 <div id="ui-top">
-  <div class="hunger-wrap"><span>饥饱</span><div class="hunger-bar"><div id="hunger-fill" class="hunger-fill"></div></div><span id="hunger-val">100</span></div>
-  <div class="stat">背包: <span id="inv">水晶0 兽皮0 木材0 鱼0</span></div>
-  <div class="stat">营地: <span id="sto">水晶0 兽皮0 木材0 鱼0</span></div>
+  <div class="bar-wrap"><span>HP</span><div class="bar"><div id="hp-fill" class="fill hp-fill" style="width:100%"></div></div><span id="hp-val">100</span></div>
+  <div class="bar-wrap"><span>耐力</span><div class="bar"><div id="stam-fill" class="fill stam-fill" style="width:100%"></div></div><span id="stam-val">100</span></div>
+  <div class="bar-wrap"><span>饥饱</span><div class="bar"><div id="hunger-fill" class="fill hunger-fill" style="width:100%"></div></div><span id="hunger-val">100</span></div>
+  <div class="stat">包:<span id="inv">皮0肉0木0晶0鱼0</span></div>
+  <div class="stat">矛:<span id="spears">3</span></div>
 </div>
 <div id="daynight-bar"><div class="dn-day"></div><div class="dn-night"></div><div class="dn-icon" id="dn-icon">☀</div><div class="dn-label" id="dn-label">白天</div></div>
-<div class="hint">左摇杆移动(八方向) · 跳跃上陡坡</div>
+<div class="hint">摇杆移动 · 矛键投掷(需耐力) · 命中动物流血变慢 · 趁虚弱追猎</div>
 <div id="joystick"><div id="stick"></div></div>
-<div class="btn" id="btn-jump">跳跃</div>
+<div class="btn" id="btn-throw">投矛</div>
+<div class="btn" id="btn-jump">跳</div>
 <div class="btn" id="btn-fish">捕鱼</div>
 <div class="btn" id="btn-collect">采集</div>
 <div class="btn" id="btn-deposit">存仓</div>
 <div class="btn" id="btn-eat">进食</div>
-<div id="message"></div>
+<div class="btn" id="btn-craft">制矛</div>
+<div class="btn" id="btn-sleep">睡觉</div>
 
 <script>
 // ========== 配置 ==========
-const TW = 64, TH = 32; // 等距瓦片宽高(2:1)
-const ELEV = 8; // 每单位高度的像素偏移
+const TW = 64, TH = 32, ELEV = 8;
 const MAP_W = 48, MAP_H = 48;
-const VISION_NEAR = 6, VISION_FAR = 10;
+const VISION_NEAR = 7, VISION_FAR = 11;
 const WATER=0, GRASS=1, SAND=2, ROCK=3, TREE=4, HOME=5;
 const DAY_SPEED = 100 / 600 / 60;
 const HUNGER_RATE = 100 / 4200 / 60;
-const MOVE_SPEED = 3.0; // 格/秒
+const MOVE_SPEED = 3.2;
+const PLAYER_MAX_HP = 100;
+const PLAYER_MAX_STAM = 100;
+const STAM_THROW = 22;
+const STAM_REGEN = 7;
+const STAM_MOVE_DRAIN = 0.4;
+const SPEAR_SPEED = 9;
+const SPEAR_RANGE = 7;
+const SPEAR_DMG = 22;
+const DEER_HP = 55, DEER_SPEED = 4.6;
+const WOLF_HP = 85, WOLF_SPEED = 4.0;
+const WOLF_DMG = 12;
+const WOLF_ATK_CD = 1.0;
+const WOLF_DETECT = 6.5;
+const BLEED_RATE = 2.8;
+const BLEED_HEAL = 0.4;
 
-// 颜色插值工具
-function lerpColor(c1, c2, t) {
-  const r1=parseInt(c1.slice(1,3),16), g1=parseInt(c1.slice(3,5),16), b1=parseInt(c1.slice(5,7),16);
-  const r2=parseInt(c2.slice(1,3),16), g2=parseInt(c2.slice(3,5),16), b2=parseInt(c2.slice(5,7),16);
-  const r=Math.round(r1+(r2-r1)*t), g=Math.round(g1+(g2-g1)*t), b=Math.round(b1+(b2-b1)*t);
-  return `rgb(${r},${g},${b})`;
-}
+function lerpColor(c1,c2,t){const r1=parseInt(c1.slice(1,3),16),g1=parseInt(c1.slice(3,5),16),b1=parseInt(c1.slice(5,7),16),r2=parseInt(c2.slice(1,3),16),g2=parseInt(c2.slice(3,5),16),b2=parseInt(c2.slice(5,7),16);return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;}
 
-// ========== 噪声(平滑) ==========
-function makeNoise(seed) {
-  const rand = mulberry32(seed);
-  const grid = {};
-  const get = (x, y) => {
-    const k = `${x},${y}`;
-    if (!(k in grid)) grid[k] = rand();
-    return grid[k];
-  };
-  const smooth = (t) => t*t*(3-2*t);
-  return (x, y) => {
-    const x0 = Math.floor(x), y0 = Math.floor(y);
-    const fx = smooth(x - x0), fy = smooth(y - y0);
-    const a = get(x0, y0), b = get(x0+1, y0), c = get(x0, y0+1), d = get(x0+1, y0+1);
-    return (a*(1-fx) + b*fx)*(1-fy) + (c*(1-fx) + d*fx)*fy;
-  };
-}
+function makeNoise(seed){const rand=mulberry32(seed);const grid={};const get=(x,y)=>{const k=x+','+y;if(!(k in grid))grid[k]=rand();return grid[k];};const sm=t=>t*t*(3-2*t);return(x,y)=>{const x0=Math.floor(x),y0=Math.floor(y),fx=sm(x-x0),fy=sm(y-y0);const a=get(x0,y0),b=get(x0+1,y0),c=get(x0,y0+1),d=get(x0+1,y0+1);return(a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy;};}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
-function mulberry32(a) {
-  return function() { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-}
-
-// ========== 岛屿生成(缓坡为主) ==========
+// ========== 岛屿 ==========
 class Island {
-  constructor(seed=42) {
-    this.rand = mulberry32(seed);
-    this.tiles = Array.from({length:MAP_H}, () => Array(MAP_W).fill(WATER));
-    this.elev = Array.from({length:MAP_H}, () => Array(MAP_W).fill(0));
-    this.obsHeight = Array.from({length:MAP_H}, () => Array(MAP_W).fill(0));
-    this.resources = {};
-    this.memory = Array.from({length:MAP_H}, () => Array(MAP_W).fill(false));
+  constructor(seed=42){
+    this.rand=mulberry32(seed);
+    this.tiles=Array.from({length:MAP_H},()=>Array(MAP_W).fill(WATER));
+    this.elev=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
+    this.obsHeight=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
+    this.resources={};
+    this.memory=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
     this._generate();
   }
-  _generate() {
-    const cx = MAP_W/2, cy = MAP_H/2, baseR = 17;
-    const noise1 = makeNoise(this.rand()*9999);
-    const noise2 = makeNoise(this.rand()*9999);
-
-    // 先生成地形和高度(平滑噪声 → 缓坡)
-    for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++) {
-      const dist = Math.hypot(x-cx, y-cy);
-      const edgeNoise = (noise1(x*0.15, y*0.15)-0.5)*5;
-      const r = baseR + edgeNoise;
-      if (dist < r-2.5) {
-        this.tiles[y][x] = GRASS;
-        // 平滑高度：中心高，边缘低，噪声起伏 → 缓坡
-        const baseH = (1 - dist/baseR) * 3;
-        const bump = (noise1(x*0.08, y*0.08) - 0.5) * 2;
-        this.elev[y][x] = Math.max(0, baseH + bump);
-      } else if (dist < r) {
-        this.tiles[y][x] = SAND;
-        // 沙地高度从边缘0平滑过渡到内侧 ~0.5
-        const t = (r - dist) / 2.5;
-        this.elev[y][x] = Math.max(0, 0.1 + t*0.4 + (noise2(x*0.2,y*0.2)-0.5)*0.15);
-      } else if (dist < r+2.5) {
-        this.tiles[y][x] = WATER;
-        this.elev[y][x] = 0; // 海平面统一为0, 与沙地直接相连
+  _generate(){
+    const cx=MAP_W/2,cy=MAP_H/2,baseR=17;
+    const n1=makeNoise(this.rand()*9999),n2=makeNoise(this.rand()*9999);
+    for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+      const dist=Math.hypot(x-cx,y-cy);
+      const r=baseR+(n1(x*0.15,y*0.15)-0.5)*5;
+      if(dist<r-2.5){this.tiles[y][x]=GRASS;this.elev[y][x]=Math.max(0,(1-dist/baseR)*3+(n1(x*0.08,y*0.08)-0.5)*2);}
+      else if(dist<r){this.tiles[y][x]=SAND;const t=(r-dist)/2.5;this.elev[y][x]=Math.max(0,0.1+t*0.4+(n2(x*0.2,y*0.2)-0.5)*0.15);}
+      else if(dist<r+2.5){this.tiles[y][x]=WATER;this.elev[y][x]=0;}
+    }
+    for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+      if(this.tiles[y][x]===GRASS&&this.elev[y][x]>0.5){
+        const r=this.rand();
+        if(r<0.06){this.tiles[y][x]=TREE;this.obsHeight[y][x]=2+Math.floor(this.rand()*2);}
+        else if(r<0.08){this.tiles[y][x]=ROCK;this.obsHeight[y][x]=1+Math.floor(this.rand()*2);}
       }
     }
+    for(let i=0;i<18;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if(this.tiles[y][x]===GRASS||this.tiles[y][x]===SAND)this.resources[`${x},${y}`]=['crystal','hide','wood'][Math.floor(this.rand()*3)];}
+    this.home={x:Math.floor(cx),y:Math.floor(cy)};
+    this.tiles[this.home.y][this.home.x]=HOME;this.obsHeight[this.home.y][this.home.x]=0;
+  }
+  getElevAt(x,y){if(x<0||x>=MAP_W-1||y<0||y>=MAP_H-1)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;const e00=this.elev[y0][x0],e10=this.elev[y0][x0+1],e01=this.elev[y0+1][x0],e11=this.elev[y0+1][x0+1];return e00*(1-fx)*(1-fy)+e10*fx*(1-fy)+e01*(1-fx)*fy+e11*fx*fy;}
+  walkable(x,y){const ix=Math.round(x),iy=Math.round(y);if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
+  spawnPoint(){for(let i=0;i<200;i++){const x=4+Math.floor(this.rand()*(MAP_W-8)),y=4+Math.floor(this.rand()*(MAP_H-8));if(this.tiles[y][x]===GRASS&&this.elev[y][x]>0.3)return{x,y};}return{x:Math.floor(MAP_W/2),y:Math.floor(MAP_H/2)};}
+}
 
-    // 撒树和石头(只在较高处)
-    for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++) {
-      if (this.tiles[y][x] === GRASS && this.elev[y][x] > 0.5) {
-        const r = this.rand();
-        if (r < 0.06) { this.tiles[y][x] = TREE; this.obsHeight[y][x] = 2 + Math.floor(this.rand()*2); }
-        else if (r < 0.08) { this.tiles[y][x] = ROCK; this.obsHeight[y][x] = 1 + Math.floor(this.rand()*2); }
+// ========== 动物 ==========
+class Animal {
+  constructor(x,y,type){
+    this.x=x;this.y=y;this.type=type;this.state='idle';
+    this.aggressive=(type==='wolf');
+    this.maxHp=this.aggressive?WOLF_HP:DEER_HP;
+    this.hp=this.maxHp;
+    this.baseSpeed=this.aggressive?WOLF_SPEED:DEER_SPEED;
+    this.bleed=0;this.wanderT=0;this.wx=0;this.wy=0;
+    this.atkCd=0;this.deadTimer=0;this.hitFlash=0;
+    this.looted=false;
+  }
+  // 当前速度: 流血越多越慢(最低40%)
+  curSpeed(){return this.baseSpeed*(1-this.bleed*0.6)*(this.deadTimer>0?0:1);}
+  speedRatio(){return this.curSpeed()/this.baseSpeed;}
+  takeDmg(d){
+    this.hp=Math.max(0,this.hp-d);
+    this.bleed=Math.min(1,this.bleed+0.25);
+    this.hitFlash=0.3;
+    if(this.hp<=0){this.state='dead';this.deadTimer=30;}
+    else if(!this.aggressive){this.state='flee';}
+    else{this.state='chase';}
+  }
+  update(dt,game){
+    const p=game.player,is=game.island;
+    if(this.hitFlash>0)this.hitFlash-=dt;
+    if(this.state==='dead'){
+      this.deadTimer-=dt;
+      return;
+    }
+    // 流血
+    if(this.bleed>0){this.hp=Math.max(0,this.hp-this.bleed*BLEED_RATE*dt);this.bleed=Math.max(0,this.bleed-BLEED_HEAL*dt);if(this.hp<=0){this.state='dead';this.deadTimer=30;return;}}
+    const distP=Math.hypot(p.x-this.x,p.y-this.y);
+
+    // 状态机
+    if(this.aggressive){
+      if(this.hp<this.maxHp*0.25){this.state='flee';}
+      else if(distP<WOLF_DETECT){this.state='chase';}
+      else if(distP>WOLF_DETECT+3){this.state='idle';}
+      if(this.state==='chase'&&distP<1.4){
+        this.state='attack';
+        if(this.atkCd<=0){p.hp=Math.max(0,p.hp-WOLF_DMG);this.atkCd=WOLF_ATK_CD;game.showMsg('被狼咬伤! -'+WOLF_DMG);}
       }
+      if(this.state==='attack'&&distP>2.0)this.state='chase';
+    } else {
+      if(distP<4)this.state='flee';
+      else if(this.state==='flee'&&distP>8)this.state='idle';
     }
-    // 资源
-    for (let i=0;i<20;i++) {
-      const x = 3 + Math.floor(this.rand()*(MAP_W-6));
-      const y = 3 + Math.floor(this.rand()*(MAP_H-6));
-      if (this.tiles[y][x] === GRASS || this.tiles[y][x] === SAND)
-        this.resources[`${x},${y}`] = ['crystal','hide','wood'][Math.floor(this.rand()*3)];
+    if(this.atkCd>0)this.atkCd-=dt;
+
+    // 移动
+    let tx=0,ty=0;
+    if(this.state==='flee'){
+      const dx=this.x-p.x,dy=this.y-p.y;const len=Math.hypot(dx,dy)||1;tx=dx/len;ty=dy/len;
+    }else if(this.state==='chase'||this.state==='attack'){
+      const dx=p.x-this.x,dy=p.y-this.y;const len=Math.hypot(dx,dy)||1;tx=dx/len;ty=dy/len;
+    }else{
+      // 漫游
+      this.wanderT-=dt;
+      if(this.wanderT<=0){this.wanderT=2+Math.random()*3;const a=Math.random()*Math.PI*2;this.wx=Math.cos(a);this.wy=Math.sin(a);}
+      tx=this.wx;ty=this.wy;
     }
-    this.home = {x: Math.floor(cx), y: Math.floor(cy)};
-    this.tiles[this.home.y][this.home.x] = HOME;
-    this.obsHeight[this.home.y][this.home.x] = 0;
-  }
-  // 双线性插值取高度(平滑)
-  getElevAt(x, y) {
-    if (x<0||x>=MAP_W-1||y<0||y>=MAP_H-1) return 0;
-    const x0=Math.floor(x), y0=Math.floor(y);
-    const fx=x-x0, fy=y-y0;
-    const e00=this.elev[y0][x0], e10=this.elev[y0][x0+1];
-    const e01=this.elev[y0+1][x0], e11=this.elev[y0+1][x0+1];
-    return e00*(1-fx)*(1-fy) + e10*fx*(1-fy) + e01*(1-fx)*fy + e11*fx*fy;
-  }
-  walkable(x, y) {
-    const ix=Math.round(x), iy=Math.round(y);
-    if (ix<0||ix>=MAP_W||iy<0||iy>=MAP_H) return false;
-    const t = this.tiles[iy][ix];
-    if (t === WATER || t === TREE) return false;
-    if (t === ROCK) return this.obsHeight[iy][ix] <= 1;
-    return true;
+    const sp=this.curSpeed()*dt;
+    const nx=this.x+tx*sp,ny=this.y+ty*sp;
+    if(is.walkable(nx,this.y))this.x=nx;
+    if(is.walkable(this.x,ny))this.y=ny;
+    // 边界
+    this.x=Math.max(1,Math.min(MAP_W-2,this.x));
+    this.y=Math.max(1,Math.min(MAP_H-2,this.y));
   }
 }
 
-// ========== 玩家(像素级平滑移动) ==========
-class Player {
-  constructor(x, y) { this.x=x; this.y=y; this.hunger=100;
-    this.inv={crystal:0,hide:0,wood:0,fish:0}; this.storage={crystal:0,hide:0,wood:0,fish:0};
-    this.vx=0; this.vy=0; this.jumpTimer=0; }
-  getHeight(island) { return island.getElevAt(this.x, this.y); }
-  collect(island) {
-    const ix=Math.round(this.x), iy=Math.round(this.y);
-    const k = `${ix},${iy}`;
-    if (k in island.resources) { const r=island.resources[k]; delete island.resources[k]; this.inv[r]++; return r; }
-    return null;
+// ========== 矛(飞行物) ==========
+class Spear {
+  constructor(x,y,dx,dy){this.x=x;this.y=y;this.dx=dx;this.dx2=dx;this.dy=dy;this.life=SPEAR_RANGE;this.dead=false;this.hitSet=new Set();}
+  update(dt,game){
+    const sp=SPEAR_SPEED*dt;
+    const nx=this.x+this.dx*sp,ny=this.y+this.dy*sp;
+    this.x=nx;this.y=ny;this.life-=sp;
+    if(this.life<=0){this.dead=true;return;}
+    if(!game.island.walkable(this.x,this.y)){this.dead=true;return;}
+    // 命中动物
+    for(const a of game.animals){
+      if(a.state==='dead'||this.hitSet.has(a))continue;
+      if(Math.hypot(a.x-this.x,a.y-this.y)<0.7){
+        a.takeDmg(SPEAR_DMG);
+        this.hitSet.add(a);
+        this.dead=true;
+        const names={deer:'鹿',wolf:'狼'};
+        game.showMsg(`命中${names[a.type]}! ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp+' 流血中'}`);
+        return;
+      }
+    }
   }
-  deposit() { for (const k in this.inv) { this.storage[k]+=this.inv[k]; this.inv[k]=0; } }
+}
+
+// ========== 玩家 ==========
+class Player {
+  constructor(x,y){this.x=x;this.y=y;this.hp=PLAYER_MAX_HP;this.stamina=PLAYER_MAX_STAM;this.hunger=100;
+    this.inv={crystal:0,hide:0,wood:0,fish:0,meat:0};this.storage={crystal:0,hide:0,wood:0,fish:0,meat:0};
+    this.spears=3;this.faceX=0;this.faceY=1;this.invuln=0;}
+  getHeight(island){return island.getElevAt(this.x,this.y);}
+  collect(island){const ix=Math.round(this.x),iy=Math.round(this.y);const k=`${ix},${iy}`;if(k in island.resources){const r=island.resources[k];delete island.resources[k];this.inv[r]++;return r;}return null;}
+  deposit(){for(const k in this.inv){this.storage[k]+=this.inv[k];this.inv[k]=0;}}
 }
 
 // ========== 游戏 ==========
 class Game {
-  constructor() {
-    this.canvas = document.getElementById('game');
-    this.ctx = this.canvas.getContext('2d');
-    this.resize();
-    window.addEventListener('resize', () => this.resize());
-    this.island = new Island(Math.floor(Math.random()*9999)+1);
-    this.player = new Player(this.island.home.x, this.island.home.y);
-    this.camX = 0; this.camY = 0;
-    this.dayTime = 0;
-    this.moveDX = 0; this.moveDY = 0;
-    this.jumpQueued = false;
-    this.msg = ''; this.msgTimer = 0;
-    this.lastTime = performance.now();
-    this.setupInput();
-    this.updateUI();
-    requestAnimationFrame(() => this.loop());
+  constructor(){
+    this.canvas=document.getElementById('game');this.ctx=this.canvas.getContext('2d');
+    this.resize();window.addEventListener('resize',()=>this.resize());
+    this.island=new Island(Math.floor(Math.random()*9999)+1);
+    this.player=new Player(this.island.home.x,this.island.home.y);
+    this.camX=this.player.x;this.camY=this.player.y;
+    this.dayTime=0;this.moveDX=0;this.moveDY=0;
+    this.jumpQueued=false;this.throwQueued=false;
+    this.animals=[];this.spears_flying=[];
+    this.spawnAnimals(8,6);
+    this.msg='';this.msgTimer=0;
+    this.lastTime=performance.now();
+    this.setupInput();this.updateUI();
+    requestAnimationFrame(()=>this.loop());
   }
-  resize() {
-    this.W = window.innerWidth; this.H = window.innerHeight;
-    this.canvas.width = this.W * devicePixelRatio; this.canvas.height = this.H * devicePixelRatio;
-    this.canvas.style.width = this.W+'px'; this.canvas.style.height = this.H+'px';
-    this.ctx.scale(devicePixelRatio, devicePixelRatio);
+  spawnAnimals(deerN,wolfN){
+    for(let i=0;i<deerN;i++){const s=this.island.spawnPoint();this.animals.push(new Animal(s.x,s.y,'deer'));}
+    for(let i=0;i<wolfN;i++){const s=this.island.spawnPoint();this.animals.push(new Animal(s.x,s.y,'wolf'));}
   }
-  // 等距坐标转换
-  toScreen(x, y, elev=0) {
-    return { sx: (x - y) * TW/2, sy: (x + y) * TH/2 - elev * ELEV };
-  }
-  setupInput() {
-    const joy = document.getElementById('joystick'), stick = document.getElementById('stick');
-    let active=false, cx=0, cy=0;
-    const setStick = (dx, dy) => { const max=40; const len=Math.hypot(dx,dy); if(len>max){dx=dx/len*max;dy=dy/len*max;} stick.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`; this.moveDX=dx/max; this.moveDY=dy/max; };
-    joy.addEventListener('touchstart', e=>{e.preventDefault();active=true;const r=joy.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;});
-    joy.addEventListener('touchmove', e=>{e.preventDefault();if(!active)return;const t=e.touches[0];setStick(t.clientX-cx,t.clientY-cy);});
-    const end=e=>{e.preventDefault();active=false;setStick(0,0);stick.style.transform='translate(-50%,-50%)';};
+  resize(){this.W=window.innerWidth;this.H=window.innerHeight;this.canvas.width=this.W*devicePixelRatio;this.canvas.height=this.H*devicePixelRatio;this.canvas.style.width=this.W+'px';this.canvas.style.height=this.H+'px';this.ctx.scale(devicePixelRatio,devicePixelRatio);}
+  toScreen(x,y,elev=0){return{sx:(x-y)*TW/2,sy:(x+y)*TH/2-elev*ELEV};}
+  setupInput(){
+    const joy=document.getElementById('joystick'),stick=document.getElementById('stick');
+    let active=false,cx=0,cy=0;
+    const set=(dx,dy)=>{const max=38;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;this.moveDX=dx/max;this.moveDY=dy/max;};
+    joy.addEventListener('touchstart',e=>{e.preventDefault();active=true;const r=joy.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;});
+    joy.addEventListener('touchmove',e=>{e.preventDefault();if(!active)return;const t=e.touches[0];set(t.clientX-cx,t.clientY-cy);});
+    const end=e=>{e.preventDefault();active=false;set(0,0);stick.style.transform='translate(-50%,-50%)';};
     joy.addEventListener('touchend',end);joy.addEventListener('touchcancel',end);
-    document.getElementById('btn-jump').addEventListener('touchstart',e=>{e.preventDefault();this.jumpQueued=true;});
-    document.getElementById('btn-fish').addEventListener('touchstart',e=>{e.preventDefault();this.doFish();});
-    document.getElementById('btn-collect').addEventListener('touchstart',e=>{e.preventDefault();this.doCollect();});
-    document.getElementById('btn-deposit').addEventListener('touchstart',e=>{e.preventDefault();this.doDeposit();});
-    document.getElementById('btn-eat').addEventListener('touchstart',e=>{e.preventDefault();this.doEat();});
+    const bid=(id,fn)=>document.getElementById(id).addEventListener('touchstart',e=>{e.preventDefault();fn.call(this);});
+    bid('btn-jump',()=>this.jumpQueued=true);
+    bid('btn-throw',()=>this.throwQueued=true);
+    bid('btn-fish',()=>this.doFish());
+    bid('btn-collect',()=>this.doCollect());
+    bid('btn-deposit',()=>this.doDeposit());
+    bid('btn-eat',()=>this.doEat());
+    bid('btn-craft',()=>this.doCraft());
+    bid('btn-sleep',()=>this.doSleep());
     const keys={};
-    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();});
+    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();if(e.key==='t')this.doSleep();});
     window.addEventListener('keyup',e=>keys[e.key]=false);
     this.getKeys=()=>{let dx=0,dy=0;if(keys['ArrowUp']||keys['w'])dy-=1;if(keys['ArrowDown']||keys['s'])dy+=1;if(keys['ArrowLeft']||keys['a'])dx-=1;if(keys['ArrowRight']||keys['d'])dx+=1;return{dx,dy};};
   }
-  doCollect(){const r=this.player.collect(this.island);const names={crystal:'水晶',hide:'兽皮',wood:'木材'};this.showMsg(r?`采集到 ${names[r]}`:'这里没有资源');this.updateUI();}
+  doThrow(){
+    const p=this.player;
+    if(p.spears<=0){this.showMsg('没有矛了! 木+石可制作');return;}
+    if(p.stamina<STAM_THROW){this.showMsg('耐力不足,休息一下');return;}
+    p.stamina-=STAM_THROW;p.spears--;
+    let dx=p.faceX,dy=p.faceY;const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
+    this.spears_flying.push(new Spear(p.x,p.y,dx,dy));
+    this.showMsg('投出长矛!');this.updateUI();
+  }
+  doCollect(){
+    // 先尝试采集动物尸体
+    for(const a of this.animals){
+      if(a.state==='dead'&&!a.looted&&Math.hypot(a.x-this.player.x,a.y-this.player.y)<1.2){
+        a.looted=true;this.player.inv.meat+=2;this.player.inv.hide+=1;
+        this.showMsg('采集到 兽皮+1 兽肉+2');this.updateUI();return;
+      }
+    }
+    const r=this.player.collect(this.island);
+    const names={crystal:'水晶',hide:'兽皮',wood:'木材'};
+    this.showMsg(r?`采集到 ${names[r]}`:'这里没有资源');this.updateUI();
+  }
   canFish(){const p=this.player,is=this.island;const ix=Math.round(p.x),iy=Math.round(p.y);if(is.tiles[iy][ix]!==SAND)return false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=ix+dx,ny=iy+dy;if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&is.tiles[ny][nx]===WATER)return true;}return false;}
-  doFish(){if(!this.canFish()){this.showMsg('要站在沙滩(黄色)且旁边有水才能捕鱼');return;}if(Math.random()<0.7){this.player.inv.fish++;this.showMsg('捕到鱼了！🐟');}else this.showMsg('这次没捕到鱼...');this.updateUI();}
-  doDeposit(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.deposit();this.showMsg('资源已存入营地');}else this.showMsg('需回到营地(红框)才能存');this.updateUI();}
-  doEat(){if(this.player.inv.fish>0){this.player.inv.fish--;this.player.hunger=Math.min(100,this.player.hunger+45);this.showMsg('吃鱼 +45');}else if(this.player.storage.fish>0){this.player.storage.fish--;this.player.hunger=Math.min(100,this.player.hunger+45);this.showMsg('营地吃鱼 +45');}else if(this.player.inv.hide>0){this.player.inv.hide--;this.player.hunger=Math.min(100,this.player.hunger+25);this.showMsg('吃兽皮 +25');}else if(this.player.storage.hide>0){this.player.storage.hide--;this.player.hunger=Math.min(100,this.player.hunger+25);this.showMsg('营地吃兽皮 +25');}else this.showMsg('没食物了！去捕鱼或打兽吧');this.updateUI();}
-  showMsg(t){this.msg=t;this.msgTimer=90;}
+  doFish(){if(!this.canFish()){this.showMsg('要在沙滩旁有水处捕鱼');return;}if(Math.random()<0.7){this.player.inv.fish++;this.showMsg('捕到鱼!');}else this.showMsg('没捕到...');this.updateUI();}
+  doDeposit(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.deposit();this.showMsg('已存入营地');}else this.showMsg('回营地(红顶房)存');this.updateUI();}
+  doEat(){const p=this.player;
+    if(p.inv.meat>0){p.inv.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('吃兽肉 +40饱 +8血');}
+    else if(p.storage.meat>0){p.storage.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('营地吃肉 +40饱 +8血');}
+    else if(p.inv.fish>0){p.inv.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('吃鱼 +45');}
+    else if(p.storage.fish>0){p.storage.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('营地吃鱼 +45');}
+    else if(p.inv.hide>0){p.inv.hide--;p.hunger=Math.min(100,p.hunger+20);this.showMsg('啃兽皮 +20');}
+    else this.showMsg('没食物! 去打猎/捕鱼');
+    this.updateUI();
+  }
+  doCraft(){const p=this.player;if(p.inv.wood>=1&&p.inv.crystal>=1){p.inv.wood--;p.inv.crystal--;p.spears+=2;this.showMsg('制作长矛 x2');}else this.showMsg('需要 木材+水晶 各1');this.updateUI();}
+  doSleep(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.hp=Math.min(PLAYER_MAX_HP,this.player.hp+30);this.player.stamina=PLAYER_MAX_STAM;this.dayTime=(this.dayTime+35)%100;this.showMsg('睡了一觉 恢复精力');}else this.showMsg('回营地才能睡');this.updateUI();}
+  showMsg(t){this.msg=t;this.msgTimer=100;}
   visible(x,y){const d=Math.hypot(x-this.player.x,y-this.player.y);if(d<=VISION_NEAR)return'near';if(d<=VISION_FAR)return'far';return null;}
   updateMemory(){const px=Math.round(this.player.x),py=Math.round(this.player.y);for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){const tx=px+dx,ty=py+dy;if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H)this.island.memory[ty][tx]=true;}}
-  update(dt) {
-    // 输入方向(八方向)
-    let {dx,dy}=this.getKeys();
+  update(dt){
+    let{dx,dy}=this.getKeys();
     if(dx===0&&dy===0){dx=this.moveDX;dy=this.moveDY;}
     const len=Math.hypot(dx,dy);
-    if(len>0.1){dx/=len;dy/=len;}
+    if(len>0.1){dx/=len;dy/=len;this.player.faceX=dx;this.player.faceY=dy;}
     else{dx=0;dy=0;}
 
-    // 尝试移动(平滑)
     if(dx||dy){
+      const moving=true;
       const speed=MOVE_SPEED*dt;
-      const nx=this.player.x+dx*speed, ny=this.player.y+dy*speed;
+      const nx=this.player.x+dx*speed,ny=this.player.y+dy*speed;
       const curH=this.island.getElevAt(this.player.x,this.player.y);
       const tgtH=this.island.getElevAt(nx,ny);
       const diff=tgtH-curH;
-      const maxUp = this.jumpQueued ? 1.2 : 0.5; // 缓坡0.5可直接走, 跳跃可上1.2
-      if(this.island.walkable(nx,ny) && diff <= maxUp && diff >= -2) {
-        this.player.x=nx; this.player.y=ny;
-        this.player.hunger=Math.max(0,this.player.hunger-dt*0.5);
+      const maxUp=this.jumpQueued?1.2:0.5;
+      if(this.island.walkable(nx,ny)&&diff<=maxUp&&diff>=-2){
+        this.player.x=nx;this.player.y=ny;
+        this.player.stamina=Math.max(0,this.player.stamina-STAM_MOVE_DRAIN*dt);
       }
     }
     this.jumpQueued=false;
+    if(this.throwQueued){this.doThrow();this.throwQueued=false;}
 
-    // 相机平滑跟随
-    const ph=this.player.getHeight(this.island);
-    const targetCamX=this.player.x;
-    const targetCamY=this.player.y;
-    this.camX+=(targetCamX-this.camX)*0.1;
-    this.camY+=(targetCamY-this.camY)*0.1;
+    // 耐力恢复(静止时快)
+    if(dx===0&&dy===0)this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*1.5*dt);
+    else this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*0.4*dt);
+
+    // 玩家无敌帧
+    if(this.player.invuln>0)this.player.invuln-=dt;
+
+    // 动物
+    for(const a of this.animals)a.update(dt,this);
+    // 清理尸体超时
+    this.animals=this.animals.filter(a=>!(a.state==='dead'&&a.deadTimer<=0));
+    // 补充动物(保持数量)
+    if(this.animals.length<10){const s=this.island.spawnPoint();this.animals.push(new Animal(s.x,s.y,Math.random()<0.6?'deer':'wolf'));}
+
+    // 矛
+    for(const s of this.spears_flying)s.update(dt,this);
+    this.spears_flying=this.spears_flying.filter(s=>!s.dead);
+
+    // 相机
+    this.camX+=(this.player.x-this.camX)*0.1;
+    this.camY+=(this.player.y-this.camY)*0.1;
 
     this.updateMemory();
     this.dayTime=(this.dayTime+DAY_SPEED*60*dt)%100;
     this.player.hunger=Math.max(0,this.player.hunger-HUNGER_RATE*60*dt);
+    // 饥饿掉血
+    if(this.player.hunger<=0)this.player.hp=Math.max(0,this.player.hp-2*dt);
     if(this.msgTimer>0)this.msgTimer--;
     this.updateUI();
   }
-  // 取网格节点(i,j)处的高度(i,j 为瓦片角点坐标, 0..MAP_W/H)
-  nodeElev(i,j){
-    const is=this.island;
-    if(i<0)i=0; if(j<0)j=0; if(i>=MAP_W)i=MAP_W-1; if(j>=MAP_H)j=MAP_H-1;
-    // 角点高度 = 周围4个瓦片高度的平均(保证相邻瓦片共享角点, 无缝)
-    let e=0,c=0;
-    if(j>0&&i>0){e+=is.elev[j-1][i-1];c++;}
-    if(j>0&&i<MAP_W){e+=is.elev[j-1][i];c++;}
-    if(j<MAP_H&&i>0){e+=is.elev[j][i-1];c++;}
-    if(j<MAP_H&&i<MAP_W){e+=is.elev[j][i];c++;}
-    return c?e/c:0;
-  }
-  // 角点转屏幕坐标
-  cornerScreen(i,j,e){
-    const sx=(i-j)*TW/2;
-    const sy=(i+j)*TH/2 - e*ELEV;
-    return {x:sx+this.W/2-this.toScreen(this.camX,this.camY).sx,
-            y:sy+this.H/2-this.toScreen(this.camX,this.camY).sy};
-  }
-  // 绘制单个等距瓦片(四角高度四边形 → 无缝缓坡)
+  nodeElev(i,j){const is=this.island;if(i<0)i=0;if(j<0)j=0;if(i>=MAP_W)i=MAP_W-1;if(j>=MAP_H)j=MAP_H-1;let e=0,c=0;if(j>0&&i>0){e+=is.elev[j-1][i-1];c++;}if(j>0&&i<MAP_W){e+=is.elev[j-1][i];c++;}if(j<MAP_H&&i>0){e+=is.elev[j][i-1];c++;}if(j<MAP_H&&i<MAP_W){e+=is.elev[j][i];c++;}return c?e/c:0;}
+  cornerScreen(i,j,e){const sx=(i-j)*TW/2,sy=(i+j)*TH/2-e*ELEV;return{x:sx+this.W/2-this.toScreen(this.camX,this.camY).sx,y:sy+this.H/2-this.toScreen(this.camX,this.camY).sy};}
   drawTile(x,y){
-    const is=this.island;
-    const t=is.tiles[y][x];
-    const oh=is.obsHeight[y][x];
-    const vis=this.visible(x,y);
-    const mem=is.memory[y][x];
+    const is=this.island;const t=is.tiles[y][x];const oh=is.obsHeight[y][x];
+    const vis=this.visible(x,y);const mem=is.memory[y][x];
     if(vis!=='near'&&vis!=='far'&&!mem)return;
-
-    // 四角高度(共享相邻瓦片 → 无裂缝)
-    // 水面保持平面, 不被相邻陆地拉高
-    const waterFlat = (t===WATER) ? 0 : null;
-    const eNW=waterFlat!==null?waterFlat:this.nodeElev(x,y);
-    const eNE=waterFlat!==null?waterFlat:this.nodeElev(x+1,y);
-    const eSE=waterFlat!==null?waterFlat:this.nodeElev(x+1,y+1);
-    const eSW=waterFlat!==null?waterFlat:this.nodeElev(x,y+1);
+    const wf=(t===WATER)?0:null;
+    const eNW=wf!==null?wf:this.nodeElev(x,y),eNE=wf!==null?wf:this.nodeElev(x+1,y),eSE=wf!==null?wf:this.nodeElev(x+1,y+1),eSW=wf!==null?wf:this.nodeElev(x,y+1);
     const avgE=(eNW+eNE+eSE+eSW)/4;
-
-    const pNW=this.cornerScreen(x,y,eNW);
-    const pNE=this.cornerScreen(x+1,y,eNE);
-    const pSE=this.cornerScreen(x+1,y+1,eSE);
-    const pSW=this.cornerScreen(x,y+1,eSW);
-    const cx=(pNW.x+pSE.x)/2, cy=(pNW.y+pSE.y)/2;
-
-    // 瓦片颜色(按高度着色 → 缓坡感)
+    const pNW=this.cornerScreen(x,y,eNW),pNE=this.cornerScreen(x+1,y,eNE),pSE=this.cornerScreen(x+1,y+1,eSE),pSW=this.cornerScreen(x,y+1,eSW);
+    const cx=(pNW.x+pSE.x)/2,cy=(pNW.y+pSE.y)/2;
     let color;
+    if(vis==='near'||vis==='far'){switch(t){case WATER:color='#2a6a9a';break;case GRASS:color=lerpColor('#2a5e32','#6aaa4a',Math.min(1,Math.max(0,avgE/4)));break;case SAND:color=lerpColor('#c8b478','#b8a468',Math.min(1,avgE));break;case ROCK:color='#8a7e72';break;case TREE:color=lerpColor('#2a5e32','#6aaa4a',Math.min(1,avgE/4));break;case HOME:color='#3c8246';break;}}
+    else color='#1e232d';
+    this.ctx.fillStyle=color;this.ctx.beginPath();this.ctx.moveTo(pNW.x,pNW.y);this.ctx.lineTo(pNE.x,pNE.y);this.ctx.lineTo(pSE.x,pSE.y);this.ctx.lineTo(pSW.x,pSW.y);this.ctx.closePath();this.ctx.fill();
+    if(t===WATER&&(vis==='near'||vis==='far')){this.ctx.strokeStyle='rgba(255,255,255,0.12)';this.ctx.lineWidth=1;const w=Math.sin((x+y)*0.5+this.dayTime*0.1)*2;this.ctx.beginPath();this.ctx.moveTo((pNW.x+pSW.x)/2+w,(pNW.y+pSW.y)/2);this.ctx.lineTo((pNE.x+pSE.x)/2+w,(pNE.y+pSE.y)/2);this.ctx.stroke();}
     if(vis==='near'||vis==='far'){
-      switch(t){
-        case WATER: color = '#2a6a9a'; break;
-        case GRASS: { const shade=Math.min(1,Math.max(0,avgE/4)); color=lerpColor('#2a5e32','#6aaa4a',shade); break; }
-        case SAND: color=lerpColor('#c8b478','#b8a468',Math.min(1,avgE)); break;
-        case ROCK: color='#8a7e72'; break;
-        case TREE: color=lerpColor('#2a5e32','#6aaa4a',Math.min(1,avgE/4)); break;
-        case HOME: color='#3c8246'; break;
-      }
-    } else { color='#1e232d'; }
-
-    // 画四角四边形(轻微外扩0.5px覆盖亚像素缝隙)
-    this.ctx.fillStyle=color;
-    this.ctx.beginPath();
-    this.ctx.moveTo(pNW.x, pNW.y);
-    this.ctx.lineTo(pNE.x, pNE.y);
-    this.ctx.lineTo(pSE.x, pSE.y);
-    this.ctx.lineTo(pSW.x, pSW.y);
-    this.ctx.closePath();
-    this.ctx.fill();
-
-    // 水波纹(仅水面)
-    if(t===WATER&&(vis==='near'||vis==='far')){
-      this.ctx.strokeStyle='rgba(255,255,255,0.12)';
-      this.ctx.lineWidth=1;
-      const w=Math.sin((x+y)*0.5+this.dayTime*0.1)*2;
-      this.ctx.beginPath();
-      this.ctx.moveTo((pNW.x+pSW.x)/2+w,(pNW.y+pSW.y)/2);
-      this.ctx.lineTo((pNE.x+pSE.x)/2+w,(pNE.y+pSE.y)/2);
-      this.ctx.stroke();
+      if(t===ROCK){const h=oh*ELEV;this.ctx.fillStyle='#6e6458';this.ctx.beginPath();this.ctx.ellipse(cx,cy-h,TW/3,TH/3,0,0,Math.PI*2);this.ctx.fill();this.ctx.fillStyle='#8a7e72';this.ctx.beginPath();this.ctx.ellipse(cx,cy-h-4,TW/3-2,TH/3-2,0,0,Math.PI*2);this.ctx.fill();}
+      else if(t===TREE){const h=oh*ELEV;this.ctx.fillStyle='#5a3a1a';this.ctx.fillRect(cx-3,cy-h,6,h);this.ctx.fillStyle='#1e5028';this.ctx.beginPath();this.ctx.arc(cx,cy-h,TW/2.5,0,Math.PI*2);this.ctx.fill();this.ctx.fillStyle='#2a6a32';this.ctx.beginPath();this.ctx.arc(cx-4,cy-h-3,TW/4,0,Math.PI*2);this.ctx.fill();}
+      else if(t===HOME){this.ctx.fillStyle='#c83c3c';this.ctx.fillRect(cx-14,cy-20,28,20);this.ctx.fillStyle='#8a2828';this.ctx.beginPath();this.ctx.moveTo(cx-16,cy-20);this.ctx.lineTo(cx,cy-32);this.ctx.lineTo(cx+16,cy-20);this.ctx.closePath();this.ctx.fill();}
     }
-
-    // 障碍物
-    if(vis==='near'||vis==='far'){
-      if(t===ROCK){
-        const h=oh*ELEV;
-        this.ctx.fillStyle='#6e6458';
-        this.ctx.beginPath();
-        this.ctx.ellipse(cx,cy-h,TW/3,TH/3,0,0,Math.PI*2);
-        this.ctx.fill();
-        this.ctx.fillStyle='#8a7e72';
-        this.ctx.beginPath();
-        this.ctx.ellipse(cx,cy-h-4,TW/3-2,TH/3-2,0,0,Math.PI*2);
-        this.ctx.fill();
-      } else if(t===TREE){
-        const h=oh*ELEV;
-        this.ctx.fillStyle='#5a3a1a';
-        this.ctx.fillRect(cx-3,cy-h,6,h);
-        this.ctx.fillStyle='#1e5028';
-        this.ctx.beginPath();
-        this.ctx.arc(cx,cy-h,TW/2.5,0,Math.PI*2);
-        this.ctx.fill();
-        this.ctx.fillStyle='#2a6a32';
-        this.ctx.beginPath();
-        this.ctx.arc(cx-4,cy-h-3,TW/4,0,Math.PI*2);
-        this.ctx.fill();
-      } else if(t===HOME){
-        this.ctx.fillStyle='#c83c3c';
-        this.ctx.fillRect(cx-14,cy-20,28,20);
-        this.ctx.fillStyle='#8a2828';
-        this.ctx.beginPath();
-        this.ctx.moveTo(cx-16,cy-20);
-        this.ctx.lineTo(cx,cy-32);
-        this.ctx.lineTo(cx+16,cy-20);
-        this.ctx.closePath();
-        this.ctx.fill();
-      }
-    }
-
-    // 资源
     if(vis==='near'&&is.resources[`${x},${y}`]){this.ctx.fillStyle='#78c8ff';this.ctx.beginPath();this.ctx.arc(cx,cy,6,0,Math.PI*2);this.ctx.fill();}
     else if(vis==='far'&&is.resources[`${x},${y}`]){this.ctx.fillStyle='#3c6478';this.ctx.beginPath();this.ctx.arc(cx,cy,4,0,Math.PI*2);this.ctx.fill();}
   }
+  drawAnimal(a){
+    const vis=this.visible(Math.round(a.x),Math.round(a.y));
+    if(vis!=='near'&&vis!=='far')return;
+    const e=this.island.getElevAt(a.x,a.y);
+    const ps=this.toScreen(a.x,a.y,e);
+    const center=this.toScreen(this.camX,this.camY);
+    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;
+    const ctx=this.ctx;
+    // 阴影
+    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(px,py+4,7,3.5,0,0,Math.PI*2);ctx.fill();
+    if(a.state==='dead'){
+      // 尸体
+      ctx.fillStyle='#6a4a2a';ctx.beginPath();ctx.ellipse(px,py,10,6,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#8a6a4a';ctx.beginPath();ctx.ellipse(px-2,py-1,7,4,0,0,Math.PI*2);ctx.fill();
+      if(!a.looted){ctx.fillStyle='#ffd040';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('可采集',px,py-10);}
+      return;
+    }
+    const flash=a.hitFlash>0;
+    if(a.type==='deer'){
+      ctx.fillStyle=flash?'#fff':'#c8a878';ctx.beginPath();ctx.ellipse(px,py-2,7,5,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=flash?'#fff':'#a88858';ctx.beginPath();ctx.ellipse(px+3,py-5,3,3,0,0,Math.PI*2);ctx.fill();
+      // 鹿角
+      ctx.strokeStyle=flash?'#fff':'#8a6840';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(px+3,py-7);ctx.lineTo(px+5,py-11);ctx.moveTo(px+3,py-7);ctx.lineTo(px+1,py-11);ctx.stroke();
+    } else {
+      ctx.fillStyle=flash?'#fff':'#5a5a5a';ctx.beginPath();ctx.ellipse(px,py-2,8,5,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=flash?'#fff':'#3a3a3a';ctx.beginPath();ctx.ellipse(px+4,py-4,3,3,0,0,Math.PI*2);ctx.fill();
+      // 红眼(攻击中)
+      if(a.state==='attack'||a.state==='chase'){ctx.fillStyle='#ff3030';ctx.beginPath();ctx.arc(px+5,py-5,1.5,0,Math.PI*2);ctx.fill();}
+    }
+    // 血条
+    if(a.hp<a.maxHp){
+      const bw=16,bh=3,bx=px-bw/2,by=py-14;
+      ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);
+      ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);
+      const hpRatio=a.hp/a.maxHp;
+      ctx.fillStyle=hpRatio>0.5?'#4ade4a':hpRatio>0.25?'#e0a028':'#d83838';
+      ctx.fillRect(bx,by,bw*hpRatio,bh);
+    }
+    // 流血标记
+    if(a.bleed>0.1){
+      ctx.fillStyle='rgba(200,40,40,0.7)';
+      ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('流血',px,py-18);
+    }
+  }
+  drawSpear(s){
+    const e=this.island.getElevAt(s.x,s.y);
+    const ps=this.toScreen(s.x,s.y,e);
+    const center=this.toScreen(this.camX,this.camY);
+    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;
+    const ctx=this.ctx;
+    const ang=Math.atan2(s.dy,s.dx);
+    // 等距下,屏幕方向 = (dx-dy, dx+dy) 归一
+    const sdx=s.dx-s.dy,sdy=(s.dx+s.dy)*0.5;
+    const slen=Math.hypot(sdx,sdy)||1;
+    ctx.save();ctx.translate(px,py);ctx.rotate(Math.atan2(sdy,sdx));
+    ctx.strokeStyle='#c8a040';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(6,0);ctx.stroke();
+    ctx.fillStyle='#e0c060';ctx.beginPath();ctx.moveTo(6,0);ctx.lineTo(10,-2);ctx.lineTo(10,2);ctx.closePath();ctx.fill();
+    ctx.restore();
+  }
   draw(){
     const ctx=this.ctx;
-    ctx.fillStyle='#0a0c12';
-    ctx.fillRect(0,0,this.W,this.H);
+    ctx.fillStyle='#0a0c12';ctx.fillRect(0,0,this.W,this.H);
+    const rangeX=Math.ceil(this.W/TW)+3,rangeY=Math.ceil(this.H/TH)+6;
+    const cx0=Math.floor(this.camX)-rangeX,cx1=Math.ceil(this.camX)+rangeX;
+    const cy0=Math.floor(this.camY)-rangeY,cy1=Math.ceil(this.camY)+rangeY;
+    for(let s=cx0+cy0;s<=cx1+cy1;s++){for(let x=Math.max(cx0,s-cy1);x<=Math.min(cx1,s-cy0);x++){const y=s-x;if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H)this.drawTile(x,y);}}
 
-    // 计算可见范围(等距坐标)
-    const center=this.toScreen(this.camX,this.camY);
-    const rangeX=Math.ceil(this.W/TW)+3, rangeY=Math.ceil(this.H/TH)+6;
-    const cx0=Math.floor(this.camX)-rangeX, cx1=Math.ceil(this.camX)+rangeX;
-    const cy0=Math.floor(this.camY)-rangeY, cy1=Math.ceil(this.camY)+rangeY;
-
-    // 按等距顺序绘制(从后到前)
-    for(let s=cx0+cy0; s<=cx1+cy1; s++){
-      for(let x=Math.max(cx0,s-cy1); x<=Math.min(cx1,s-cy0); x++){
-        const y=s-x;
-        if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H) this.drawTile(x,y);
-      }
+    // 动物和矛按等距y排序
+    const drawables=[];
+    for(const a of this.animals)drawables.push({y:a.y+a.x,fn:()=>this.drawAnimal(a)});
+    for(const s of this.spears_flying)drawables.push({y:s.y+s.x+0.01,fn:()=>this.drawSpear(s)});
+    drawables.sort((a,b)=>a.y-b.y);
+    // 玩家也加入排序
+    const pY=this.player.y+this.player.x;
+    let pInserted=false;
+    for(let i=0;i<drawables.length;i++){
+      if(!pInserted&&drawables[i].y>pY){this.drawPlayer();pInserted=true;}
+      drawables[i].fn();
     }
+    if(!pInserted)this.drawPlayer();
 
-    // 玩家
-    const ph=this.player.getHeight(this.island);
-    const ps=this.toScreen(this.player.x,this.player.y,ph);
-    const ppx=ps.sx+this.W/2-center.sx;
-    const ppy=ps.sy+this.H/2-center.sy;
-    // 阴影
-    ctx.fillStyle='rgba(0,0,0,0.3)';
-    ctx.beginPath();ctx.ellipse(ppx,ppy+6,8,4,0,0,Math.PI*2);ctx.fill();
-    // 身体
-    ctx.fillStyle='#ff8c3c';
-    ctx.beginPath();ctx.arc(ppx,ppy,10,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-
-    // 夜晚
     const night=Math.abs(this.dayTime-50)/50;
     if(night>0.3){ctx.fillStyle=`rgba(0,0,0,${(night-0.3)/0.7*0.6})`;ctx.fillRect(0,0,this.W,this.H);}
-
-    // 消息
-    if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='16px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.55,w,32);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.55+22);}
+    if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='15px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.6,w,30);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.6+20);}
+  }
+  drawPlayer(){
+    const ctx=this.ctx;
+    const ph=this.player.getHeight(this.island);
+    const ps=this.toScreen(this.player.x,this.player.y,ph);
+    const center=this.toScreen(this.camX,this.camY);
+    const ppx=ps.sx+this.W/2-center.sx,ppy=ps.sy+this.H/2-center.sy;
+    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(ppx,ppy+6,8,4,0,0,Math.PI*2);ctx.fill();
+    // 朝向指示(小三角)
+    const fx=this.player.faceX,fy=this.player.faceY;
+    const sdx=fx-fy,sdy=(fx+fy)*0.5;
+    const ang=Math.atan2(sdy,sdx);
+    ctx.save();ctx.translate(ppx,ppy);ctx.rotate(ang);
+    ctx.fillStyle='rgba(255,200,100,0.4)';ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(8,-4);ctx.lineTo(8,4);ctx.closePath();ctx.fill();
+    ctx.restore();
+    // 身体
+    const invuln=this.player.invuln>0&&Math.floor(this.player.invuln*10)%2;
+    ctx.fillStyle=invuln?'#fff':'#ff8c3c';ctx.beginPath();ctx.arc(ppx,ppy,9,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    // 玩家血条(头顶,小)
+    if(this.player.hp<PLAYER_MAX_HP){
+      const bw=20,bh=3,bx=ppx-bw/2,by=ppy-16;
+      ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);
+      ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);
+      const r=this.player.hp/PLAYER_MAX_HP;
+      ctx.fillStyle=r>0.5?'#4ade4a':r>0.25?'#e0a028':'#d83838';
+      ctx.fillRect(bx,by,bw*r,bh);
+    }
   }
   updateUI(){
     const p=this.player;
-    document.getElementById('hunger-fill').style.width=p.hunger+'%';
-    document.getElementById('hunger-fill').className='hunger-fill'+(p.hunger<30?' low':'');
+    const hpR=p.hp/PLAYER_MAX_HP;
+    const hf=document.getElementById('hp-fill');
+    hf.style.width=(hpR*100)+'%';hf.className='fill hp-fill'+(hpR<0.4?'':' ')+(hpR<0.4?'':'');hf.style.background=hpR>0.5?'#4ade4a':hpR>0.25?'#e0a028':'#d83838';
+    document.getElementById('hp-val').textContent=Math.floor(p.hp);
+    document.getElementById('stam-fill').style.width=(p.stamina/PLAYER_MAX_STAM*100)+'%';
+    document.getElementById('stam-val').textContent=Math.floor(p.stamina);
+    const hg=document.getElementById('hunger-fill');
+    hg.style.width=p.hunger+'%';hg.className='fill hunger-fill'+(p.hunger<30?' low':'');
     document.getElementById('hunger-val').textContent=Math.floor(p.hunger);
-    document.getElementById('inv').textContent=`水晶${p.inv.crystal} 兽皮${p.inv.hide} 木材${p.inv.wood} 鱼${p.inv.fish}`;
-    document.getElementById('sto').textContent=`水晶${p.storage.crystal} 兽皮${p.storage.hide} 木材${p.storage.wood} 鱼${p.storage.fish}`;
+    document.getElementById('inv').textContent=`皮${p.inv.hide}肉${p.inv.meat}木${p.inv.wood}晶${p.inv.crystal}鱼${p.inv.fish}`;
+    document.getElementById('spears').textContent=p.spears;
     const icon=document.getElementById('dn-icon'),label=document.getElementById('dn-label');
     if(this.dayTime<50){icon.textContent='☀';icon.style.left=(this.dayTime/50*50)+'%';label.textContent='白天';}
     else{icon.textContent='🌙';icon.style.left=(50+(this.dayTime-50)/50*50)+'%';label.textContent='黑夜';}
   }
   loop(now){
+    if(!now)now=performance.now();
     const dt=Math.min(0.05,(now-this.lastTime)/1000);
     this.lastTime=now;
     this.update(dt);
