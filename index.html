@@ -203,6 +203,9 @@ class Island{
     // === 地表细化: 每格色差噪声 + 装饰物(花/水洼/灌木/碎石/草叶) ===
     this.tileNoise=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
     this.decor={};
+    // === 纹理噪声: 基于世界坐标连续, 供drawTile画子格子色斑用 ===
+    this.texN1=makeNoise(this.rand()*9999);
+    this.texN2=makeNoise(this.rand()*9999);
     this._generate();
   }
   _generate(){
@@ -1348,6 +1351,46 @@ class Game{
     const fSE={x:cx+(pSE.x-cx)*ex,y:cy+(pSE.y-cy)*ex};
     const fSW={x:cx+(pSW.x-cx)*ex,y:cy+(pSW.y-cy)*ex};
     ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();
+    // === 子格子色斑: 基于世界坐标连续噪声, 同类型区域融合看不出格子 ===
+    if(vis==='near'||vis==='far'){
+      const f=0.3;
+      for(let i=0;i<2;i++){
+        const sn1=is.texN1(x*f+i*11,y*f);
+        const sn2=is.texN2(x*f,y*f+i*11);
+        const sx=cx+(sn1-0.5)*TW*0.75;
+        const sy=cy+(sn2-0.5)*TH*0.75;
+        const sr=7+is.texN1(x*f*2,y*f*2+i*5)*7;
+        const dk=is.texN2(x*f+i*5,y*f+i*5)>0.5;
+        ctx.fillStyle=dk?lerpColor(color,'#000',0.12):lerpColor(color,'#fff',0.1);
+        ctx.globalAlpha=0.35;
+        ctx.beginPath();ctx.arc(sx,sy,sr,0,Math.PI*2);ctx.fill();
+      }
+      ctx.globalAlpha=1;
+      // === 边缘过渡: 不同类型交界处画半透明邻居色, 柔化边界 ===
+      const edges=[
+        {mx:(fNW.x+fNE.x)*0.5,my:(fNW.y+fNE.y)*0.5,nt:(y>0?is.tiles[y-1][x]:t)},
+        {mx:(fNE.x+fSE.x)*0.5,my:(fNE.y+fSE.y)*0.5,nt:(x<MAP_W-1?is.tiles[y][x+1]:t)},
+        {mx:(fSE.x+fSW.x)*0.5,my:(fSE.y+fSW.y)*0.5,nt:(y<MAP_H-1?is.tiles[y+1][x]:t)},
+        {mx:(fSW.x+fNW.x)*0.5,my:(fSW.y+fNW.y)*0.5,nt:(x>0?is.tiles[y][x-1]:t)},
+      ];
+      ctx.globalAlpha=0.28;
+      for(const e of edges){
+        if(e.nt===t)continue;
+        let nc;
+        switch(e.nt){
+          case WATER:nc='#2a5a7a';break;
+          case GRASS:nc='#4a8a3a';break;
+          case SAND:nc='#c8b478';break;
+          case ROCK:nc='#8a7e72';break;
+          case TREE:nc='#3a6a2a';break;
+          case HOME:nc='#3c8246';break;
+          default:continue;
+        }
+        ctx.fillStyle=nc;
+        ctx.beginPath();ctx.arc(e.mx,e.my,7,0,Math.PI*2);ctx.fill();
+      }
+      ctx.globalAlpha=1;
+    }
     // === 斜坡光照: 北坡亮, 南坡暗, 增强小山坡立体感 ===
     if(vis==='near'||vis==='far'){
       const slope=(eNW+eNE)-(eSE+eSW);
