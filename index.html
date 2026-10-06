@@ -8,114 +8,127 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0c12; color: #e6e6e6; font-family: -apple-system, "PingFang SC", sans-serif; touch-action: none; user-select: none; }
   #game { display: block; width: 100vw; height: 100vh; }
-  #ui-top { position: fixed; top: env(safe-area-inset-top, 0); left: 0; right: 0; padding: 6px 10px; background: rgba(15,18,24,0.85); font-size: 12px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; pointer-events: none; }
-  .bar-wrap { display: flex; align-items: center; gap: 4px; }
-  .bar { width: 80px; height: 10px; background: #2a2a2a; border-radius: 5px; overflow: hidden; }
+  #ui-top { position: fixed; top: env(safe-area-inset-top, 0); left: 0; right: 0; padding: 5px 8px; background: rgba(15,18,24,0.85); font-size: 11px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; pointer-events: none; }
+  .bar-wrap { display: flex; align-items: center; gap: 3px; }
+  .bar { width: 60px; height: 9px; background: #2a2a2a; border-radius: 4px; overflow: hidden; }
   .fill { height: 100%; transition: width .15s; }
-  .hp-fill { background: #d83838; } .hp-fill.mid { background: #e0a028; }
   .stam-fill { background: #4ac8e0; }
   .hunger-fill { background: #e0a028; } .hunger-fill.low { background: #c83828; }
   .stat { white-space: nowrap; }
-  .hint { position: fixed; top: calc(env(safe-area-inset-top, 0) + 80px); left: 10px; font-size: 10px; color: #888; pointer-events: none; max-width: 70vw; }
-  #daynight-bar { position: fixed; top: calc(env(safe-area-inset-top, 0) + 44px); left: 10px; width: 160px; height: 16px; border-radius: 8px; overflow: hidden; display: flex; background: #222; pointer-events: none; }
+  .hint { position: fixed; top: calc(env(safe-area-inset-top, 0) + 76px); left: 8px; font-size: 9px; color: #888; pointer-events: none; max-width: 72vw; }
+  #daynight-bar { position: fixed; top: calc(env(safe-area-inset-top, 0) + 42px); left: 8px; width: 140px; height: 14px; border-radius: 7px; overflow: hidden; display: flex; background: #222; pointer-events: none; }
   .dn-day { flex: 1; background: linear-gradient(90deg, #4a90c2, #f5d76e); }
   .dn-night { flex: 1; background: linear-gradient(90deg, #2c3e6b, #1a1a3e); }
-  .dn-icon { position: absolute; top: 0; height: 16px; line-height: 16px; font-size: 12px; transform: translateX(-50%); transition: left 0.3s; }
-  .dn-label { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 16px; line-height: 16px; font-size: 10px; color: #fff; text-shadow: 0 0 3px #000; }
-  .hint { position: fixed; top: calc(env(safe-area-inset-top, 0) + 80px); left: 10px; font-size: 10px; color: #888; pointer-events: none; max-width: 70vw; }
-  #joystick { position: fixed; left: 25px; bottom: calc(35px + env(safe-area-inset-bottom, 0)); width: 100px; height: 100px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); touch-action: none; }
-  #stick { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 44px; height: 44px; border-radius: 50%; background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4); }
-  .btn { position: fixed; width: 56px; height: 56px; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  .dn-icon { position: absolute; top: 0; height: 14px; line-height: 14px; font-size: 11px; transform: translateX(-50%); transition: left 0.3s; }
+  .dn-label { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 14px; line-height: 14px; font-size: 9px; color: #fff; text-shadow: 0 0 3px #000; }
+  #joystick { position: fixed; left: 20px; bottom: calc(30px + env(safe-area-inset-bottom, 0)); width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); touch-action: none; }
+  #stick { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4); }
+  .btn { position: fixed; width: 50px; height: 50px; border-radius: 50%; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: none; }
   .btn:active { filter: brightness(1.3); }
-  #btn-throw { right: 25px; bottom: calc(270px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.6); color: #fff0c8; }
-  #btn-melee { right: 90px; bottom: calc(340px + env(safe-area-inset-bottom, 0)); background: rgba(100,50,30,0.85); border: 2px solid rgba(220,120,60,0.6); color: #ffd8c0; }
-  #btn-jump { right: 90px; bottom: calc(270px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.85); border: 2px solid rgba(180,150,255,0.5); color: #e0d8ff; }
-  #btn-fish { right: 90px; bottom: calc(200px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.85); border: 2px solid rgba(100,180,255,0.5); color: #c8e8ff; }
-  #btn-collect { right: 25px; bottom: calc(200px + env(safe-area-inset-bottom, 0)); background: rgba(40,90,60,0.85); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; }
-  #btn-deposit { right: 90px; bottom: calc(120px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.85); border: 2px solid rgba(220,120,120,0.5); color: #ffd0d0; }
-  #btn-eat { right: 25px; bottom: calc(120px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
-  #btn-craft { right: 90px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
-  #btn-sleep { right: 25px; bottom: calc(50px + env(safe-area-inset-bottom, 0)); background: rgba(40,60,50,0.85); border: 2px solid rgba(120,200,160,0.5); color: #c8ffe8; }
+  #btn-throw { right: 20px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.6); color: #fff0c8; }
+  #btn-melee { right: 78px; bottom: calc(310px + env(safe-area-inset-bottom, 0)); background: rgba(100,50,30,0.85); border: 2px solid rgba(220,120,60,0.6); color: #ffd8c0; }
+  #btn-trap { right: 78px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(50,80,40,0.85); border: 2px solid rgba(120,200,100,0.5); color: #d0ffd0; }
+  #btn-sneak { right: 20px; bottom: calc(310px + env(safe-area-inset-bottom, 0)); background: rgba(40,60,80,0.85); border: 2px solid rgba(100,160,220,0.5); color: #c0e0ff; }
+  #btn-jump { right: 78px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.85); border: 2px solid rgba(180,150,255,0.5); color: #e0d8ff; }
+  #btn-fish { right: 78px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.85); border: 2px solid rgba(100,180,255,0.5); color: #c8e8ff; }
+  #btn-collect { right: 20px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(40,90,60,0.85); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; }
+  #btn-deposit { right: 78px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.85); border: 2px solid rgba(220,120,120,0.5); color: #ffd0d0; }
+  #btn-eat { right: 20px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
+  #btn-craft { right: 20px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
+  .btn.active { filter: brightness(1.5); box-shadow: 0 0 8px rgba(255,255,255,0.4); }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
 <div id="ui-top">
-  <div class="bar-wrap"><span>HP</span><div class="bar"><div id="hp-fill" class="fill hp-fill" style="width:100%"></div></div><span id="hp-val">100</span></div>
+  <div class="bar-wrap"><span>HP</span><div class="bar"><div id="hp-fill" class="fill" style="width:100%;background:#4ade4a"></div></div><span id="hp-val">100</span></div>
   <div class="bar-wrap"><span>耐力</span><div class="bar"><div id="stam-fill" class="fill stam-fill" style="width:100%"></div></div><span id="stam-val">100</span></div>
-  <div class="bar-wrap"><span>饥饱</span><div class="bar"><div id="hunger-fill" class="fill hunger-fill" style="width:100%"></div></div><span id="hunger-val">100</span></div>
-  <div class="stat">包:<span id="inv">皮0肉0木0晶0鱼0</span></div>
-  <div class="stat">矛:<span id="spears">3</span> 斧:<span id="axes">1</span></div>
+  <div class="bar-wrap"><span>饱</span><div class="bar"><div id="hunger-fill" class="fill hunger-fill" style="width:100%"></div></div><span id="hunger-val">100</span></div>
+  <div class="stat" id="weapon-tier">石器</div>
+  <div class="stat">矛<span id="spears">3</span>斧<span id="axes">1</span>陷<span id="traps">2</span></div>
+  <div class="stat">包:<span id="inv">皮0肉0木0晶0骨0矿0鱼0</span></div>
 </div>
 <div id="daynight-bar"><div class="dn-day"></div><div class="dn-night"></div><div class="dn-icon" id="dn-icon">☀</div><div class="dn-label" id="dn-label">白天</div></div>
-<div class="hint">摇杆定朝向 · 黄线=矛射程 · 近战扇形劈砍 · 远投近砍</div>
+<div class="hint">瞄准线锁定部位 · 头×3 心×2 前腿僵直 · 陷阱减速 · 潜行 · 狼群围猎</div>
 <div id="joystick"><div id="stick"></div></div>
-<div class="btn" id="btn-melee">石斧</div>
+<div class="btn" id="btn-sneak">潜行</div>
+<div class="btn" id="btn-melee">近战</div>
+<div class="btn" id="btn-trap">陷阱</div>
 <div class="btn" id="btn-throw">投矛</div>
 <div class="btn" id="btn-jump">跳</div>
-<div class="btn" id="btn-fish">捕鱼</div>
 <div class="btn" id="btn-collect">采集</div>
-<div class="btn" id="btn-deposit">存仓</div>
+<div class="btn" id="btn-fish">捕鱼</div>
 <div class="btn" id="btn-eat">进食</div>
-<div class="btn" id="btn-craft">制矛</div>
-<div class="btn" id="btn-sleep">睡觉</div>
+<div class="btn" id="btn-deposit">存仓</div>
+<div class="btn" id="btn-craft">制作</div>
 
 <script>
 // ========== 配置 ==========
-const TW = 64, TH = 32, ELEV = 8;
-const MAP_W = 48, MAP_H = 48;
-const VISION_NEAR = 7, VISION_FAR = 11;
-const WATER=0, GRASS=1, SAND=2, ROCK=3, TREE=4, HOME=5;
-const DAY_SPEED = 100 / 600 / 60;
-const HUNGER_RATE = 100 / 4200 / 60;
-const MOVE_SPEED = 3.2;
-const PLAYER_MAX_HP = 100;
-const PLAYER_MAX_STAM = 100;
-const STAM_THROW = 22;
-const STAM_REGEN = 7;
-const STAM_MOVE_DRAIN = 0.4;
-const SPEAR_SPEED = 9;
-const SPEAR_RANGE = 7;
-const SPEAR_DMG = 22;
-const MELEE_RANGE = 1.8;
-const MELEE_DMG = 18;
-const MELEE_CD = 0.6;
-const MELEE_STAM = 8;
-const MELEE_ARC = Math.PI/3; // 攻击扇形半角
-const DEER_HP = 55, DEER_SPEED = 4.6;
-const WOLF_HP = 85, WOLF_SPEED = 4.0;
-const WOLF_DMG = 12;
-const WOLF_ATK_CD = 1.0;
-// 动物感知距离: graze(吃草) → alert(警惕) → flee/chase
-const DEER_ALERT = 10, DEER_FLEE = 6;
-const WOLF_ALERT = 13, WOLF_CHASE = 9;
-const GRAZE_SPEED = 0.35; // 吃草慢速(倍率)
-const BLEED_RATE = 2.8;
-const BLEED_HEAL = 0.4;
-const TURN_SPEED = 8; // 朝向旋转速度
+const TW=64,TH=32,ELEV=8,MAP_W=48,MAP_H=48;
+const VISION_NEAR=7,VISION_FAR=11;
+const WATER=0,GRASS=1,SAND=2,ROCK=3,TREE=4,HOME=5;
+const DAY_SPEED=100/600/60,HUNGER_RATE=100/4200/60;
+const MOVE_SPEED=3.2,SNEAK_SPEED=1.4;
+const PLAYER_MAX_HP=100,PLAYER_MAX_STAM=100;
+const STAM_REGEN=7,STAM_MOVE_DRAIN=0.4;
+const TURN_SPEED=8;
+// 武器等级
+const WEAPONS={
+  stone:{name:'石器',spearDmg:22,axeDmg:18,throwStam:22,meleeStam:8,color:'#c8a040'},
+  bone:{name:'骨器',spearDmg:35,axeDmg:28,throwStam:20,meleeStam:7,color:'#e8d8c0'},
+  metal:{name:'金属',spearDmg:55,axeDmg:45,throwStam:18,meleeStam:6,color:'#c0c0d8'},
+};
+const SPEAR_SPEED=9,SPEAR_RANGE=7;
+const MELEE_RANGE=1.8,MELEE_CD=0.6,MELEE_ARC=Math.PI/3;
+const HEAD_OFFSET=0.4,HEAD_RADIUS=0.35,BODY_RADIUS=0.7;
+// 部位系统: 5个部位, 各有倍率/效果/掉落(参考怪猎/方舟)
+const PART_DEFS=[
+  {key:'head',     label:'头',   offF: 0.40, offP: 0.00, r:0.30, mult:3,   bleed:0.4, drop:{bone:2},         color:'#ff4040'},
+  {key:'heart',    label:'心',   offF: 0.05, offP: 0.00, r:0.22, mult:2,   bleed:0.7, drop:{meat:2},         color:'#ff8030'},
+  {key:'frontLeg', label:'前腿', offF: 0.20, offP: 0.20, r:0.20, mult:1.5, bleed:0.2, stun:1.5, drop:{hide:1}, color:'#ffd030'},
+  {key:'abdomen',  label:'腹',   offF:-0.15, offP: 0.00, r:0.30, mult:1,   bleed:0.25,drop:{meat:3},         color:'#80ff60'},
+  {key:'hindLeg',  label:'后腿', offF:-0.30, offP: 0.18, r:0.20, mult:1,   bleed:0.2, slow:4, drop:{hide:1},  color:'#60a0ff'},
+];
+// 动物
+const DEER_HP=55,DEER_SPEED=4.6,WOLF_HP=85,WOLF_SPEED=4.0;
+const WOLF_DMG=12,WOLF_ATK_CD=1.2;
+const DEER_ALERT=10,DEER_FLEE=6;
+const WOLF_ALERT=8,WOLF_CHASE=2;
+const GRAZE_SPEED=0.35,BLEED_RATE=2.8,BLEED_HEAL=0.4;
+const WOLF_HOWL_RANGE=14,WOLF_HOWL_CD=4;
+// 狼攻击蓄势: 进入chase后需累积WOLF_ATTACK_WINDUP秒才真正扑咬
+// 避免狼群一接触玩家就瞬间攻击, 给玩家反应/逃跑/反杀时间
+const WOLF_ATTACK_WINDUP=1.5;
+// 群体判定: 攻击范围内狼群>=WOLF_PACK_MIN只才主动攻击, 少于此数仅威慑跟随
+// 击杀/打退其中一只(死亡或重伤逃跑), 其余狼立即flee
+// WOLF_PACK_FLEE_RADIUS限定"玩家附近的狼群", 防止远处狼也凑数一路追过来
+const WOLF_PACK_MIN=3,WOLF_PACK_FLEE_RADIUS=6;
+// 砍树: 每次斧砍削减1点obsHeight, 归零时倒下按原高度给木材
+const CHOP_RANGE=1.6,WOOD_PER_HGT=1;
+// 陷阱
+const TRAP_SLOW_DUR=6,TRAP_SLOW_MULT=0.25;
+// 潜行: 动物感知范围倍率
+const SNEAK_DETECT_MULT=0.35;
 
 function lerpColor(c1,c2,t){const r1=parseInt(c1.slice(1,3),16),g1=parseInt(c1.slice(3,5),16),b1=parseInt(c1.slice(5,7),16),r2=parseInt(c2.slice(1,3),16),g2=parseInt(c2.slice(3,5),16),b2=parseInt(c2.slice(5,7),16);return `rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;}
-
 function makeNoise(seed){const rand=mulberry32(seed);const grid={};const get=(x,y)=>{const k=x+','+y;if(!(k in grid))grid[k]=rand();return grid[k];};const sm=t=>t*t*(3-2*t);return(x,y)=>{const x0=Math.floor(x),y0=Math.floor(y),fx=sm(x-x0),fy=sm(y-y0);const a=get(x0,y0),b=get(x0+1,y0),c=get(x0,y0+1),d=get(x0+1,y0+1);return(a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy;};}
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
 // ========== 岛屿 ==========
-class Island {
+class Island{
   constructor(seed=42){
     this.rand=mulberry32(seed);
     this.tiles=Array.from({length:MAP_H},()=>Array(MAP_W).fill(WATER));
     this.elev=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
     this.obsHeight=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
-    this.resources={};
-    this.memory=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
+    this.resources={};this.memory=Array.from({length:MAP_H},()=>Array(MAP_W).fill(false));
     this._generate();
   }
   _generate(){
     const cx=MAP_W/2,cy=MAP_H/2,baseR=17;
     const n1=makeNoise(this.rand()*9999),n2=makeNoise(this.rand()*9999);
     for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
-      const dist=Math.hypot(x-cx,y-cy);
-      const r=baseR+(n1(x*0.15,y*0.15)-0.5)*5;
+      const dist=Math.hypot(x-cx,y-cy);const r=baseR+(n1(x*0.15,y*0.15)-0.5)*5;
       if(dist<r-2.5){this.tiles[y][x]=GRASS;this.elev[y][x]=Math.max(0,(1-dist/baseR)*3+(n1(x*0.08,y*0.08)-0.5)*2);}
       else if(dist<r){this.tiles[y][x]=SAND;const t=(r-dist)/2.5;this.elev[y][x]=Math.max(0,0.1+t*0.4+(n2(x*0.2,y*0.2)-0.5)*0.15);}
       else if(dist<r+2.5){this.tiles[y][x]=WATER;this.elev[y][x]=0;}
@@ -127,48 +140,66 @@ class Island {
         else if(r<0.08){this.tiles[y][x]=ROCK;this.obsHeight[y][x]=1+Math.floor(this.rand()*2);}
       }
     }
-    for(let i=0;i<18;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if(this.tiles[y][x]===GRASS||this.tiles[y][x]===SAND)this.resources[`${x},${y}`]=['crystal','hide','wood'][Math.floor(this.rand()*3)];}
+    for(let i=0;i<14;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if(this.tiles[y][x]===GRASS||this.tiles[y][x]===SAND)this.resources[`${x},${y}`]=['crystal','hide','wood'][Math.floor(this.rand()*3)];}
+    // 矿石(稀有, 在岩石旁)
+    for(let i=0;i<6;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if(this.tiles[y][x]===GRASS)this.resources[`${x},${y}`]='ore';}
     this.home={x:Math.floor(cx),y:Math.floor(cy)};
     this.tiles[this.home.y][this.home.x]=HOME;this.obsHeight[this.home.y][this.home.x]=0;
   }
   getElevAt(x,y){if(x<0||x>=MAP_W-1||y<0||y>=MAP_H-1)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;const e00=this.elev[y0][x0],e10=this.elev[y0][x0+1],e01=this.elev[y0+1][x0],e11=this.elev[y0+1][x0+1];return e00*(1-fx)*(1-fy)+e10*fx*(1-fy)+e01*(1-fx)*fy+e11*fx*fy;}
   walkable(x,y){const ix=Math.round(x),iy=Math.round(y);if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
-  spawnPoint(){for(let i=0;i<200;i++){const x=4+Math.floor(this.rand()*(MAP_W-8)),y=4+Math.floor(this.rand()*(MAP_H-8));if(this.tiles[y][x]===GRASS&&this.elev[y][x]>0.3)return{x,y};}return{x:Math.floor(MAP_W/2),y:Math.floor(MAP_H/2)};}
+  spawnPoint(safeFrom=null,safeRadius=8){for(let i=0;i<200;i++){const x=4+Math.floor(this.rand()*(MAP_W-8)),y=4+Math.floor(this.rand()*(MAP_H-8));if(this.tiles[y][x]===GRASS&&this.elev[y][x]>0.3){if(safeFrom&&Math.hypot(x-safeFrom.x,y-safeFrom.y)<safeRadius)continue;return{x,y};}}return{x:Math.floor(MAP_W/2),y:Math.floor(MAP_H/2)};}
 }
 
 // ========== 动物 ==========
-class Animal {
+class Animal{
   constructor(x,y,type){
     this.x=x;this.y=y;this.type=type;this.state='graze';
     this.aggressive=(type==='wolf');
-    this.maxHp=this.aggressive?WOLF_HP:DEER_HP;
-    this.hp=this.maxHp;
+    this.maxHp=this.aggressive?WOLF_HP:DEER_HP;this.hp=this.maxHp;
     this.baseSpeed=this.aggressive?WOLF_SPEED:DEER_SPEED;
-    this.bleed=0;this.wanderT=0;this.wx=0;this.wy=0;
-    this.atkCd=0;this.deadTimer=0;this.hitFlash=0;
-    this.looted=false;
-    this.facing=0; // 朝向角度(游戏空间)
-    this.facingTarget=0; // 目标朝向
-    this.grazeT=0; // 吃草计时
+    this.bleed=0;this.atkCd=0;this.deadTimer=0;this.hitFlash=0;this.looted=false;
+    this.facing=0;this.facingTarget=0;this.grazeT=0;this.grazeMoveT=0;this.wx=0;this.wy=0;
+    this.trapSlowT=0;this.howlT=0;this.packRole='solo';
+    this.stunT=0;this.partSlowT=0;this.lastHitPart=null;
+    this.chaseT=0;
   }
-  // 当前速度: 吃草超慢, 流血越多越慢
+  // 部位位置数组(头/心/前腿/腹/后腿), 随朝向旋转
+  parts(){
+    const fx=Math.cos(this.facing),fy=Math.sin(this.facing);
+    const px=-fy,py=fx;
+    return PART_DEFS.map(d=>({...d,x:this.x+fx*d.offF+px*d.offP,y:this.y+fy*d.offF+py*d.offP}));
+  }
+  // 部位命中: 按部位倍率/效果/掉落结算
+  takeDmgPart(d,part,game){
+    const dmg=d*part.mult;
+    this.hp=Math.max(0,this.hp-dmg);
+    this.bleed=Math.min(1,this.bleed+(part.bleed||0.25));
+    this.hitFlash=0.3;
+    if(part.stun)this.stunT=part.stun;
+    if(part.slow)this.partSlowT=part.slow;
+    this.lastHitPart=part;
+    if(this.hp<=0){
+      this.state='dead';this.deadTimer=30;
+      // 狼死亡触发附近同伴逃跑(被打退一只, 其余溃散)
+      if(this.aggressive&&game)game.wolfPackFlee(this);
+    } else if(!this.aggressive)this.state='flee';
+    else this.state='chase';
+  }
   curSpeed(){
     if(this.state==='graze')return this.baseSpeed*GRAZE_SPEED;
     if(this.state==='alert')return 0;
-    return this.baseSpeed*(1-this.bleed*0.6);
+    let s=this.baseSpeed*(1-this.bleed*0.6);
+    if(this.trapSlowT>0)s*=TRAP_SLOW_MULT;
+    if(this.partSlowT>0)s*=0.5;
+    return s;
   }
-  // 平滑旋转朝向
-  turnTo(tx,ty,dt){
-    this.facingTarget=Math.atan2(ty,tx);
-    let diff=this.facingTarget-this.facing;
-    while(diff>Math.PI)diff-=Math.PI*2;
-    while(diff<-Math.PI)diff+=Math.PI*2;
-    this.facing+=diff*Math.min(1,TURN_SPEED*dt);
-  }
-  takeDmg(d){
+  turnTo(tx,ty,dt){this.facingTarget=Math.atan2(ty,tx);let diff=this.facingTarget-this.facing;while(diff>Math.PI)diff-=Math.PI*2;while(diff<-Math.PI)diff+=Math.PI*2;this.facing+=diff*Math.min(1,TURN_SPEED*dt);}
+  takeDmg(d,weak){
     this.hp=Math.max(0,this.hp-d);
-    this.bleed=Math.min(1,this.bleed+0.25);
+    this.bleed=Math.min(1,this.bleed+(weak?0.5:0.25));
     this.hitFlash=0.3;
+    this.lastHitPart=null;
     if(this.hp<=0){this.state='dead';this.deadTimer=30;}
     else if(!this.aggressive){this.state='flee';}
     else{this.state='chase';}
@@ -177,107 +208,124 @@ class Animal {
     const p=game.player,is=game.island;
     if(this.hitFlash>0)this.hitFlash-=dt;
     if(this.state==='dead'){this.deadTimer-=dt;return;}
-    // 流血
+    if(this.trapSlowT>0)this.trapSlowT-=dt;
     if(this.bleed>0){this.hp=Math.max(0,this.hp-this.bleed*BLEED_RATE*dt);this.bleed=Math.max(0,this.bleed-BLEED_HEAL*dt);if(this.hp<=0){this.state='dead';this.deadTimer=30;return;}}
+    // 部位僵直: 不AI/移动, 但流血继续
+    if(this.stunT>0){this.stunT-=dt;if(this.stunT>0)return;}
+    if(this.partSlowT>0)this.partSlowT-=dt;
+    // 潜行影响感知距离
+    const mult=game.player.sneak?SNEAK_DETECT_MULT:1;
     const distP=Math.hypot(p.x-this.x,p.y-this.y);
     const dxp=p.x-this.x,dyp=p.y-this.y;
+    const alertR=(this.aggressive?WOLF_ALERT:DEER_ALERT)*mult;
+    const actR=(this.aggressive?WOLF_CHASE:DEER_FLEE)*mult;
 
-    // 状态机: graze(吃草) → alert(警惕) → flee/chase(行动)
     if(this.aggressive){
       if(this.hp<this.maxHp*0.25){this.state='flee';}
-      else if(distP<WOLF_CHASE){this.state='chase';}
-      else if(distP<WOLF_ALERT){this.state='alert';}
+      else if(distP<actR){
+        // 群体判定: 玩家附近WOLF_PACK_FLEE_RADIUS内狼>=WOLF_PACK_MIN才主动chase, 否则仅alert威慑
+        // 注意是"玩家附近"的狼数, 不是"自己附近", 防止远处大群一路追过来
+        const packNearPlayer=game.animals.filter(w=>w.type==='wolf'&&w.state!=='dead'&&Math.hypot(w.x-p.x,w.y-p.y)<WOLF_PACK_FLEE_RADIUS).length;
+        if(packNearPlayer>=WOLF_PACK_MIN)this.state='chase';
+        // 已chase但狼群溃散(掉到<3), 立即降级到alert, 不再死缠
+        else if(this.state==='chase'){this.state='alert';this.chaseT=0;}
+        else if(this.state!=='attack')this.state='alert';
+      }
+      else if(distP<alertR){this.state='alert';}
       else if(this.state!=='flee'){this.state='graze';}
-      // 攻击
-      if(this.state==='chase'&&distP<1.4){
-        this.state='attack';
-        if(this.atkCd<=0){p.hp=Math.max(0,p.hp-WOLF_DMG);p.invuln=0.5;this.atkCd=WOLF_ATK_CD;game.showMsg('被狼咬伤! -'+WOLF_DMG);}
+      // 蓄势计时: chase状态累积, 离开/中断则归零
+      if(this.state==='chase'){this.chaseT+=dt;}
+      else if(this.state!=='attack'){this.chaseT=0;}
+      // 嗥叫呼叫同伴(只在自己确实在chase时, 且玩家附近已凑够3只)
+      if(this.state==='chase'){
+        this.howlT-=dt;
+        if(this.howlT<=0){this.howlT=WOLF_HOWL_CD;game.wolfHowl(this);}
+      }
+      // 群体轮攻: packRole由game分配, 只有attacker才攻击
+      // 蓄势满(WOLF_ATTACK_WINDUP秒)后才真正扑咬, 否则只是威慑跟随
+      if(this.state==='chase'&&distP<1.4&&this.chaseT>=WOLF_ATTACK_WINDUP){
+        if(this.packRole==='attacker'||this.packRole==='solo'){
+          this.state='attack';
+          if(this.atkCd<=0){p.hp=Math.max(0,p.hp-WOLF_DMG);p.invuln=0.5;this.atkCd=WOLF_ATK_CD;game.showMsg('被狼咬伤! -'+WOLF_DMG);}
+        } else {
+          // 包围者: 绕到玩家侧后方
+          const flankAng=Math.atan2(dyp,dxp)+(this.packId%2?1:-1)*1.5;
+          this.turnTo(Math.cos(flankAng),Math.sin(flankAng),dt);
+        }
       }
       if(this.state==='attack'&&distP>2.0)this.state='chase';
     } else {
-      if(distP<DEER_FLEE){this.state='flee';}
-      else if(distP<DEER_ALERT){this.state='alert';}
+      if(distP<actR){this.state='flee';}
+      else if(distP<alertR){this.state='alert';}
       else if(this.state!=='flee'){this.state='graze';}
-      else if(distP>DEER_ALERT+2){this.state='graze';}
+      else if(distP>alertR+2){this.state='graze';}
     }
     if(this.atkCd>0)this.atkCd-=dt;
 
-    // 朝向 + 移动
     let tx=0,ty=0;
-    if(this.state==='flee'){
-      tx=-dxp;ty=-dyp;const len=Math.hypot(tx,ty)||1;tx/=len;ty/=len;
-      this.turnTo(tx,ty,dt);
-    }else if(this.state==='chase'||this.state==='attack'){
-      tx=dxp;ty=dyp;const len=Math.hypot(tx,ty)||1;tx/=len;ty/=len;
-      this.turnTo(tx,ty,dt);
-    }else if(this.state==='alert'){
-      // 警惕: 停下, 面朝玩家
-      this.turnTo(dxp,dyp,dt);
-    }else{
-      // 吃草: 偶尔慢速移动
+    if(this.state==='flee'){tx=-dxp;ty=-dyp;const len=Math.hypot(tx,ty)||1;tx/=len;ty/=len;this.turnTo(tx,ty,dt);}
+    else if(this.state==='chase'){tx=dxp;ty=dyp;const len=Math.hypot(tx,ty)||1;tx/=len;ty/=len;this.turnTo(tx,ty,dt);}
+    else if(this.state==='alert'){this.turnTo(dxp,dyp,dt);}
+    else{
       this.grazeT-=dt;
-      if(this.grazeT<=0){
-        this.grazeT=3+Math.random()*4;
-        const a=Math.random()*Math.PI*2;
-        this.wx=Math.cos(a);this.wy=Math.sin(a);
-        this.grazeMoveT=1+Math.random()*1.5;
-      }
-      if(this.grazeMoveT>0){
-        this.grazeMoveT-=dt;
-        tx=this.wx;ty=this.wy;
-        this.turnTo(tx,ty,dt);
-      }else{
-        tx=0;ty=0;
-        // 吃草时低头, 朝向不变或慢转
-      }
+      if(this.grazeT<=0){this.grazeT=3+Math.random()*4;const a=Math.random()*Math.PI*2;this.wx=Math.cos(a);this.wy=Math.sin(a);this.grazeMoveT=1+Math.random()*1.5;}
+      if(this.grazeMoveT>0){this.grazeMoveT-=dt;tx=this.wx;ty=this.wy;this.turnTo(tx,ty,dt);}
     }
     const sp=this.curSpeed()*dt;
-    if(tx||ty){
-      const nx=this.x+tx*sp,ny=this.y+ty*sp;
-      if(is.walkable(nx,this.y))this.x=nx;
-      if(is.walkable(this.x,ny))this.y=ny;
-    }
-    this.x=Math.max(1,Math.min(MAP_W-2,this.x));
-    this.y=Math.max(1,Math.min(MAP_H-2,this.y));
+    if(tx||ty){const nx=this.x+tx*sp,ny=this.y+ty*sp;if(is.walkable(nx,this.y))this.x=nx;if(is.walkable(this.x,ny))this.y=ny;}
+    // 陷阱检测
+    for(const tp of game.traps){if(!tp.triggered&&Math.hypot(tp.x-this.x,tp.y-this.y)<0.6){tp.triggered=true;tp.triggerT=TRAP_SLOW_DUR;this.trapSlowT=TRAP_SLOW_DUR;game.showMsg('动物踩中陷阱!');}}
+    this.x=Math.max(1,Math.min(MAP_W-2,this.x));this.y=Math.max(1,Math.min(MAP_H-2,this.y));
   }
 }
 
-// ========== 矛(飞行物) ==========
-class Spear {
-  constructor(x,y,dx,dy){this.x=x;this.y=y;this.dx=dx;this.dx2=dx;this.dy=dy;this.life=SPEAR_RANGE;this.dead=false;this.hitSet=new Set();}
+// ========== 陷阱 ==========
+class Trap{constructor(x,y){this.x=x;this.y=y;this.triggered=false;this.triggerT=0;this.dead=false;}}
+
+// ========== 矛 ==========
+class Spear{
+  constructor(x,y,dx,dy,dmg,tierColor){this.x=x;this.y=y;this.dx=dx;this.dy=dy;this.dmg=dmg;this.color=tierColor;this.life=SPEAR_RANGE;this.dead=false;this.hitSet=new Set();}
   update(dt,game){
-    const sp=SPEAR_SPEED*dt;
-    const nx=this.x+this.dx*sp,ny=this.y+this.dy*sp;
-    this.x=nx;this.y=ny;this.life-=sp;
-    if(this.life<=0){this.dead=true;return;}
-    if(!game.island.walkable(this.x,this.y)){this.dead=true;return;}
-    // 命中动物
+    const sp=SPEAR_SPEED*dt;this.x+=this.dx*sp;this.y+=this.dy*sp;this.life-=sp;
+    if(this.life<=0||!game.island.walkable(this.x,this.y)){this.dead=true;return;}
     for(const a of game.animals){
       if(a.state==='dead'||this.hitSet.has(a))continue;
-      if(Math.hypot(a.x-this.x,a.y-this.y)<0.7){
-        a.takeDmg(SPEAR_DMG);
-        this.hitSet.add(a);
-        this.dead=true;
-        const names={deer:'鹿',wolf:'狼'};
-        game.showMsg(`命中${names[a.type]}! ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp+' 流血中'}`);
-        return;
+      // 部位命中: 找距离矛最近的部位, 在其半径内即触发
+      const parts=a.parts();
+      let best=null,bestD=Infinity;
+      for(const p of parts){
+        const d=Math.hypot(p.x-this.x,p.y-this.y);
+        if(d<p.r&&d<bestD){best=p;bestD=d;}
+      }
+      if(best){
+        a.takeDmgPart(this.dmg,best,game);this.hitSet.add(a);this.dead=true;
+        game.showMsg(`${best.label}命中! x${best.mult} ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp}`);return;
+      }
+      // 身体兜底(没瞄到任何部位但擦到身体)
+      const dBody=Math.hypot(a.x-this.x,a.y-this.y);
+      if(dBody<BODY_RADIUS){
+        a.takeDmg(this.dmg,false);this.hitSet.add(a);this.dead=true;
+        game.showMsg(`擦身命中 ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp}`);return;
       }
     }
   }
 }
 
 // ========== 玩家 ==========
-class Player {
+class Player{
   constructor(x,y){this.x=x;this.y=y;this.hp=PLAYER_MAX_HP;this.stamina=PLAYER_MAX_STAM;this.hunger=100;
-    this.inv={crystal:0,hide:0,wood:0,fish:0,meat:0};this.storage={crystal:0,hide:0,wood:0,fish:0,meat:0};
-    this.spears=3;this.axes=1;this.faceX=0;this.faceY=1;this.facing=0;this.invuln=0;this.meleeCd=0;}
+    this.inv={crystal:0,hide:0,wood:0,fish:0,meat:0,bone:0,ore:0};
+    this.storage={crystal:0,hide:0,wood:0,fish:0,meat:0,bone:0,ore:0};
+    this.spears=3;this.axes=1;this.traps=2;this.weaponTier='stone';
+    this.faceX=0;this.faceY=1;this.facing=0;this.invuln=0;this.meleeCd=0;this.sneak=false;}
   getHeight(island){return island.getElevAt(this.x,this.y);}
+  getWeapon(){return WEAPONS[this.weaponTier];}
   collect(island){const ix=Math.round(this.x),iy=Math.round(this.y);const k=`${ix},${iy}`;if(k in island.resources){const r=island.resources[k];delete island.resources[k];this.inv[r]++;return r;}return null;}
   deposit(){for(const k in this.inv){this.storage[k]+=this.inv[k];this.inv[k]=0;}}
 }
 
 // ========== 游戏 ==========
-class Game {
+class Game{
   constructor(){
     this.canvas=document.getElementById('game');this.ctx=this.canvas.getContext('2d');
     this.resize();window.addEventListener('resize',()=>this.resize());
@@ -285,25 +333,57 @@ class Game {
     this.player=new Player(this.island.home.x,this.island.home.y);
     this.camX=this.player.x;this.camY=this.player.y;
     this.dayTime=0;this.moveDX=0;this.moveDY=0;
-    this.jumpQueued=false;this.throwQueued=false;this.meleeQueued=false;
-    this.meleeAnim=0;
-    this.animals=[];this.spears_flying=[];
+    this.jumpQueued=false;this.throwQueued=false;this.meleeQueued=false;this.meleeAnim=0;
+    this.animals=[];this.spears_flying=[];this.traps=[];this.howlEffects=[];
     this.spawnAnimals(8,6);
-    this.msg='';this.msgTimer=0;
-    this.lastTime=performance.now();
+    this.msg='';this.msgTimer=0;this.lastTime=performance.now();
     this.setupInput();this.updateUI();
     requestAnimationFrame(()=>this.loop());
   }
   spawnAnimals(deerN,wolfN){
+    const home=this.island.home;
     for(let i=0;i<deerN;i++){const s=this.island.spawnPoint();this.animals.push(new Animal(s.x,s.y,'deer'));}
-    for(let i=0;i<wolfN;i++){const s=this.island.spawnPoint();this.animals.push(new Animal(s.x,s.y,'wolf'));}
+    // 狼生成时避开出生点 WOLF_CHASE*3 格, 确保玩家出生时不在狼的主动攻击范围内
+    const wolfSafeR=WOLF_CHASE*3;
+    for(let i=0;i<wolfN;i++){const s=this.island.spawnPoint(home,wolfSafeR);this.animals.push(new Animal(s.x,s.y,'wolf'));}
+  }
+  // 狼群溃逃: 一只狼被打退, 附近其余狼立即flee
+  wolfPackFlee(dead){
+    let fled=0;
+    for(const w of this.animals){
+      if(w.type==='wolf'&&w!==dead&&w.state!=='dead'&&w.state!=='flee'){
+        const d=Math.hypot(w.x-dead.x,w.y-dead.y);
+        if(d<WOLF_PACK_FLEE_RADIUS){w.state='flee';w.chaseT=0;fled++;}
+      }
+    }
+    if(fled>0)this.showMsg(`狼群溃逃! ${fled}只狼逃走`);
+  }
+  // 狼群AI: 嗥叫呼叫附近狼
+  wolfHowl(caller){
+    this.howlEffects.push({x:caller.x,y:caller.y,t:1.5});
+    let called=0;
+    // 嗥叫前先确认玩家附近狼群>=WOLF_PACK_MIN才召集, 否则单狼独斗等于送死
+    const packNearPlayer=this.animals.filter(w=>w.type==='wolf'&&w.state!=='dead'&&Math.hypot(w.x-this.player.x,w.y-this.player.y)<WOLF_PACK_FLEE_RADIUS).length;
+    if(packNearPlayer<WOLF_PACK_MIN)return;
+    for(const w of this.animals){
+      if(w.type==='wolf'&&w!==caller&&w.state!=='dead'&&w.state!=='chase'&&w.state!=='attack'){
+        const d=Math.hypot(w.x-caller.x,w.y-caller.y);
+        if(d<WOLF_HOWL_RANGE){w.state='chase';w.howlT=WOLF_HOWL_CD;called++;}
+      }
+    }
+    // 分配群体角色
+    const pack=this.animals.filter(w=>w.type==='wolf'&&(w.state==='chase'||w.state==='attack'));
+    if(pack.length>=3){
+      pack.sort((a,b)=>Math.hypot(a.x-this.player.x,a.y-this.player.y)-Math.hypot(b.x-this.player.x,b.y-this.player.y));
+      pack.forEach((w,i)=>{w.packRole=i===0?'attacker':'flank';w.packId=i;});
+    } else {pack.forEach(w=>{w.packRole='solo';});}
   }
   resize(){this.W=window.innerWidth;this.H=window.innerHeight;this.canvas.width=this.W*devicePixelRatio;this.canvas.height=this.H*devicePixelRatio;this.canvas.style.width=this.W+'px';this.canvas.style.height=this.H+'px';this.ctx.scale(devicePixelRatio,devicePixelRatio);}
   toScreen(x,y,elev=0){return{sx:(x-y)*TW/2,sy:(x+y)*TH/2-elev*ELEV};}
   setupInput(){
     const joy=document.getElementById('joystick'),stick=document.getElementById('stick');
     let active=false,cx=0,cy=0;
-    const set=(dx,dy)=>{const max=38;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;this.moveDX=dx/max;this.moveDY=dy/max;};
+    const set=(dx,dy)=>{const max=35;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;this.moveDX=dx/max;this.moveDY=dy/max;};
     joy.addEventListener('touchstart',e=>{e.preventDefault();active=true;const r=joy.getBoundingClientRect();cx=r.left+r.width/2;cy=r.top+r.height/2;});
     joy.addEventListener('touchmove',e=>{e.preventDefault();if(!active)return;const t=e.touches[0];set(t.clientX-cx,t.clientY-cy);});
     const end=e=>{e.preventDefault();active=false;set(0,0);stick.style.transform='translate(-50%,-50%)';};
@@ -312,81 +392,135 @@ class Game {
     bid('btn-jump',()=>this.jumpQueued=true);
     bid('btn-throw',()=>this.throwQueued=true);
     bid('btn-melee',()=>this.meleeQueued=true);
+    bid('btn-trap',()=>this.doTrap());
+    bid('btn-sneak',()=>this.toggleSneak());
     bid('btn-fish',()=>this.doFish());
     bid('btn-collect',()=>this.doCollect());
     bid('btn-deposit',()=>this.doDeposit());
     bid('btn-eat',()=>this.doEat());
     bid('btn-craft',()=>this.doCraft());
-    bid('btn-sleep',()=>this.doSleep());
     const keys={};
-    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='k')this.meleeQueued=true;if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();if(e.key==='t')this.doSleep();});
+    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='k')this.meleeQueued=true;if(e.key==='x')this.doTrap();if(e.key==='Shift')this.toggleSneak();if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();});
     window.addEventListener('keyup',e=>keys[e.key]=false);
     this.getKeys=()=>{let dx=0,dy=0;if(keys['ArrowUp']||keys['w'])dy-=1;if(keys['ArrowDown']||keys['s'])dy+=1;if(keys['ArrowLeft']||keys['a'])dx-=1;if(keys['ArrowRight']||keys['d'])dx+=1;return{dx,dy};};
   }
+  toggleSneak(){this.player.sneak=!this.player.sneak;document.getElementById('btn-sneak').classList.toggle('active',this.player.sneak);this.showMsg(this.player.sneak?'潜行模式(减速,不易被发现)':'恢复正常');}
   doThrow(){
-    const p=this.player;
-    if(p.spears<=0){this.showMsg('没有矛了! 木+石可制作');return;}
-    if(p.stamina<STAM_THROW){this.showMsg('耐力不足,休息一下');return;}
-    p.stamina-=STAM_THROW;p.spears--;
+    const p=this.player,w=p.getWeapon();
+    if(p.spears<=0){this.showMsg('没有矛!');return;}
+    if(p.stamina<w.throwStam){this.showMsg('耐力不足');return;}
+    p.stamina-=w.throwStam;p.spears--;
     let dx=p.faceX,dy=p.faceY;const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
-    this.spears_flying.push(new Spear(p.x,p.y,dx,dy));
-    this.showMsg('投出长矛!');this.updateUI();
+    this.spears_flying.push(new Spear(p.x,p.y,dx,dy,w.spearDmg,w.color));
+    this.showMsg('投出'+w.name+'矛!');this.updateUI();
   }
   doMelee(){
-    const p=this.player;
-    if(p.axes<=0){this.showMsg('没有石斧! 木+石可制作');return;}
+    const p=this.player,w=p.getWeapon();
+    if(p.axes<=0){this.showMsg('没有武器!');return;}
     if(p.meleeCd>0)return;
-    if(p.stamina<MELEE_STAM){this.showMsg('耐力不足');return;}
-    p.stamina-=MELEE_STAM;p.meleeCd=MELEE_CD;
-    this.meleeAnim=0.25; // 攻击动画
-    // 扇形范围内的动物全部命中
+    if(p.stamina<w.meleeStam){this.showMsg('耐力不足');return;}
+    p.stamina-=w.meleeStam;p.meleeCd=MELEE_CD;this.meleeAnim=0.25;
+    // 砍树: 玩家面前1格的TREE
+    const ttx=Math.round(p.x+Math.cos(p.facing)*1.0);
+    const tty=Math.round(p.y+Math.sin(p.facing)*1.0);
+    if(ttx>=0&&ttx<MAP_W&&tty>=0&&tty<MAP_H&&this.island.tiles[tty][ttx]===TREE){
+      this.island.obsHeight[tty][ttx]--;
+      if(this.island.obsHeight[tty][ttx]<=0){
+        const wood=2+Math.floor(Math.random()*2);
+        this.island.tiles[tty][ttx]=GRASS;
+        this.island.obsHeight[tty][ttx]=0;
+        p.inv.wood+=wood;
+        this.showMsg(`砍倒树! 木材+${wood}`);
+      } else {
+        this.showMsg('砍树... '+this.island.obsHeight[tty][ttx]+' hits');
+      }
+      this.updateUI();
+      return;
+    }
     let hitAny=false;
     for(const a of this.animals){
       if(a.state==='dead')continue;
-      const dx=a.x-p.x,dy=a.y-p.y;
-      const dist=Math.hypot(dx,dy);
-      if(dist<=MELEE_RANGE){
-        const ang=Math.atan2(dy,dx);
-        let diff=ang-p.facing;
-        while(diff>Math.PI)diff-=Math.PI*2;
-        while(diff<-Math.PI)diff+=Math.PI*2;
+      const dx=a.x-p.x,dy=a.y-p.y;const dist=Math.hypot(dx,dy);
+      if(dist>MELEE_RANGE+0.5)continue;
+      // 扇形内距离/角度最佳的部位
+      let best=null,bestScore=Infinity;
+      for(const part of a.parts()){
+        const pdx=part.x-p.x,pdy=part.y-p.y;const pd=Math.hypot(pdx,pdy);
+        if(pd>MELEE_RANGE)continue;
+        const pAng=Math.atan2(pdy,pdx);let pDiff=pAng-p.facing;
+        while(pDiff>Math.PI)pDiff-=Math.PI*2;while(pDiff<-Math.PI)pDiff+=Math.PI*2;
+        if(Math.abs(pDiff)>MELEE_ARC)continue;
+        const score=Math.abs(pDiff)+pd*0.3;
+        if(score<bestScore){bestScore=score;best=part;}
+      }
+      if(best){
+        a.takeDmgPart(w.axeDmg,best,this);hitAny=true;
+        this.showMsg(`${best.label}劈击! x${best.mult} ${a.hp<=0?'击杀!':''}`);
+      } else if(dist<=MELEE_RANGE){
+        // 扇形内无部位, 但身体在范围内 -> 普通命中
+        const ang=Math.atan2(dy,dx);let diff=ang-p.facing;
+        while(diff>Math.PI)diff-=Math.PI*2;while(diff<-Math.PI)diff+=Math.PI*2;
         if(Math.abs(diff)<=MELEE_ARC){
-          a.takeDmg(MELEE_DMG);
-          hitAny=true;
-          const names={deer:'鹿',wolf:'狼'};
-          this.showMsg(`石斧命中${names[a.type]}! ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp}`);
+          a.takeDmg(w.axeDmg,false);hitAny=true;
+          this.showMsg(`命中 ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp}`);
         }
       }
     }
     if(!hitAny)this.showMsg('挥空!');
     this.updateUI();
   }
+  doTrap(){
+    const p=this.player;
+    if(p.traps<=0){this.showMsg('没有陷阱! 木2制作');return;}
+    if(p.stamina<5){this.showMsg('耐力不足');return;}
+    p.stamina-=5;p.traps--;
+    this.traps.push(new Trap(p.x,p.y));
+    this.showMsg('放置陷阱!');this.updateUI();
+  }
   doCollect(){
-    // 先尝试采集动物尸体
-    for(const a of this.animals){
+    for(let i=0;i<this.animals.length;i++){
+      const a=this.animals[i];
       if(a.state==='dead'&&!a.looted&&Math.hypot(a.x-this.player.x,a.y-this.player.y)<1.2){
-        a.looted=true;this.player.inv.meat+=2;this.player.inv.hide+=1;
-        this.showMsg('采集到 兽皮+1 兽肉+2');this.updateUI();return;
+        a.looted=true;
+        const part=a.lastHitPart;
+        const names={hide:'皮',meat:'肉',bone:'骨'};
+        if(part&&part.drop){
+          for(const k in part.drop)this.player.inv[k]=(this.player.inv[k]||0)+part.drop[k];
+          const summary=Object.entries(part.drop).map(([k,v])=>(names[k]||k)+'+'+v).join(' ');
+          this.showMsg(`采集 ${part.label}部: ${summary}`);
+        } else {
+          this.player.inv.meat+=1;this.player.inv.hide+=1;
+          this.showMsg('采集 皮+1 肉+1');
+        }
+        // 立即移除尸体, 不留残留
+        this.animals.splice(i,1);
+        this.updateUI();return;
       }
     }
-    const r=this.player.collect(this.island);
-    const names={crystal:'水晶',hide:'兽皮',wood:'木材'};
-    this.showMsg(r?`采集到 ${names[r]}`:'这里没有资源');this.updateUI();
+    const r=this.player.collect(this.island);const names={crystal:'水晶',hide:'兽皮',wood:'木材',ore:'矿石'};
+    this.showMsg(r?`采集到 ${names[r]||r}`:'这里没有资源');this.updateUI();
   }
   canFish(){const p=this.player,is=this.island;const ix=Math.round(p.x),iy=Math.round(p.y);if(is.tiles[iy][ix]!==SAND)return false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=ix+dx,ny=iy+dy;if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&is.tiles[ny][nx]===WATER)return true;}return false;}
   doFish(){if(!this.canFish()){this.showMsg('要在沙滩旁有水处捕鱼');return;}if(Math.random()<0.7){this.player.inv.fish++;this.showMsg('捕到鱼!');}else this.showMsg('没捕到...');this.updateUI();}
-  doDeposit(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.deposit();this.showMsg('已存入营地');}else this.showMsg('回营地(红顶房)存');this.updateUI();}
+  doDeposit(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.deposit();this.showMsg('已存入营地');}else this.showMsg('回营地存');this.updateUI();}
   doEat(){const p=this.player;
     if(p.inv.meat>0){p.inv.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('吃兽肉 +40饱 +8血');}
     else if(p.storage.meat>0){p.storage.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('营地吃肉 +40饱 +8血');}
     else if(p.inv.fish>0){p.inv.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('吃鱼 +45');}
     else if(p.storage.fish>0){p.storage.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('营地吃鱼 +45');}
-    else if(p.inv.hide>0){p.inv.hide--;p.hunger=Math.min(100,p.hunger+20);this.showMsg('啃兽皮 +20');}
-    else this.showMsg('没食物! 去打猎/捕鱼');
+    else this.showMsg('没食物!');
     this.updateUI();
   }
-  doCraft(){const p=this.player;if(p.inv.wood>=1&&p.inv.crystal>=1){p.inv.wood--;p.inv.crystal--;p.spears+=1;p.axes+=1;this.showMsg('制作 长矛+1 石斧+1');}else this.showMsg('需要 木材+水晶 各1');this.updateUI();}
-  doSleep(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.hp=Math.min(PLAYER_MAX_HP,this.player.hp+30);this.player.stamina=PLAYER_MAX_STAM;this.dayTime=(this.dayTime+35)%100;this.showMsg('睡了一觉 恢复精力');}else this.showMsg('回营地才能睡');this.updateUI();}
+  doCraft(){
+    const p=this.player;
+    // 循环升级: stone→bone→metal, 或制作武器
+    if(p.weaponTier==='stone'&&p.inv.bone>=3&&p.inv.wood>=2){p.inv.bone-=3;p.inv.wood-=2;p.weaponTier='bone';this.showMsg('武器升级: 骨器! 伤害提升');}
+    else if(p.weaponTier==='bone'&&p.inv.ore>=3&&p.inv.wood>=2){p.inv.ore-=3;p.inv.wood-=2;p.weaponTier='metal';this.showMsg('武器升级: 金属器! 伤害大幅提升');}
+    else if(p.inv.wood>=1&&p.inv.crystal>=1){p.inv.wood--;p.inv.crystal--;p.spears+=1;p.axes+=1;this.showMsg('制作 矛+1 斧+1');}
+    else if(p.inv.wood>=2){p.inv.wood-=2;p.traps+=1;this.showMsg('制作 陷阱+1');}
+    else this.showMsg('需要: 木+晶(武器) / 木2(陷阱) / 骨3+木2(骨器) / 矿3+木2(金属)');
+    this.updateUI();
+  }
   showMsg(t){this.msg=t;this.msgTimer=100;}
   visible(x,y){const d=Math.hypot(x-this.player.x,y-this.player.y);if(d<=VISION_NEAR)return'near';if(d<=VISION_FAR)return'far';return null;}
   updateMemory(){const px=Math.round(this.player.x),py=Math.round(this.player.y);for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){const tx=px+dx,ty=py+dy;if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H)this.island.memory[ty][tx]=true;}}
@@ -396,52 +530,60 @@ class Game {
     const len=Math.hypot(dx,dy);
     if(len>0.1){dx/=len;dy/=len;this.player.faceX=dx;this.player.faceY=dy;this.player.facing=Math.atan2(dy,dx);}
     else{dx=0;dy=0;}
-
     if(dx||dy){
-      const moving=true;
-      const speed=MOVE_SPEED*dt;
+      const speed=(this.player.sneak?SNEAK_SPEED:MOVE_SPEED)*dt;
       const nx=this.player.x+dx*speed,ny=this.player.y+dy*speed;
       const curH=this.island.getElevAt(this.player.x,this.player.y);
-      const tgtH=this.island.getElevAt(nx,ny);
-      const diff=tgtH-curH;
+      const tgtH=this.island.getElevAt(nx,ny);const diff=tgtH-curH;
       const maxUp=this.jumpQueued?1.2:0.5;
-      if(this.island.walkable(nx,ny)&&diff<=maxUp&&diff>=-2){
-        this.player.x=nx;this.player.y=ny;
-        this.player.stamina=Math.max(0,this.player.stamina-STAM_MOVE_DRAIN*dt);
-      }
+      if(this.island.walkable(nx,ny)&&diff<=maxUp&&diff>=-2){this.player.x=nx;this.player.y=ny;this.player.stamina=Math.max(0,this.player.stamina-STAM_MOVE_DRAIN*dt);}
     }
     this.jumpQueued=false;
     if(this.throwQueued){this.doThrow();this.throwQueued=false;}
     if(this.meleeQueued){this.doMelee();this.meleeQueued=false;}
     if(this.player.meleeCd>0)this.player.meleeCd-=dt;
     if(this.meleeAnim>0)this.meleeAnim-=dt;
-
-    // 耐力恢复(静止时快)
+    // 耐力恢复
     if(dx===0&&dy===0)this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*1.5*dt);
-    else this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*0.4*dt);
-
-    // 玩家无敌帧
+    else this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*0.3*dt);
     if(this.player.invuln>0)this.player.invuln-=dt;
-
     // 动物
     for(const a of this.animals)a.update(dt,this);
-    // 清理尸体超时
     this.animals=this.animals.filter(a=>!(a.state==='dead'&&a.deadTimer<=0));
-    // 补充动物(保持数量)
-    if(this.animals.length<10){const s=this.island.spawnPoint();this.animals.push(new Animal(s.x,s.y,Math.random()<0.6?'deer':'wolf'));}
-
+    if(this.animals.length<10){const s=this.island.spawnPoint(this.island.home,WOLF_CHASE*3);this.animals.push(new Animal(s.x,s.y,Math.random()<0.6?'deer':'wolf'));}
     // 矛
     for(const s of this.spears_flying)s.update(dt,this);
     this.spears_flying=this.spears_flying.filter(s=>!s.dead);
-
+    // 陷阱
+    for(const t of this.traps){if(t.triggerT>0){t.triggerT-=dt;if(t.triggerT<=0)t.dead=true;}}
+    this.traps=this.traps.filter(t=>!t.dead);
+    // 嗥叫特效
+    for(const h of this.howlEffects)h.t-=dt;
+    this.howlEffects=this.howlEffects.filter(h=>h.t>0);
+    // 计算瞄准线锁定的部位(用于高亮+提示)
+    this.lockedPart=null;
+    if(this.player.spears>0){
+      const fx=Math.cos(this.player.facing),fy=Math.sin(this.player.facing);
+      let best=null,bestProj=Infinity;
+      for(const a of this.animals){
+        if(a.state==='dead')continue;
+        if(Math.hypot(a.x-this.player.x,a.y-this.player.y)>SPEAR_RANGE+1)continue;
+        for(const p of a.parts()){
+          const pdx=p.x-this.player.x,pdy=p.y-this.player.y;
+          const proj=pdx*fx+pdy*fy;
+          if(proj<0||proj>SPEAR_RANGE)continue;
+          const perp=Math.abs(pdx*fy-pdy*fx);
+          if(perp>p.r*0.6)continue;
+          if(proj<bestProj){bestProj=proj;best={animal:a,part:p};}
+        }
+      }
+      this.lockedPart=best;
+    }
     // 相机
-    this.camX+=(this.player.x-this.camX)*0.1;
-    this.camY+=(this.player.y-this.camY)*0.1;
-
+    this.camX+=(this.player.x-this.camX)*0.1;this.camY+=(this.player.y-this.camY)*0.1;
     this.updateMemory();
     this.dayTime=(this.dayTime+DAY_SPEED*60*dt)%100;
     this.player.hunger=Math.max(0,this.player.hunger-HUNGER_RATE*60*dt);
-    // 饥饿掉血
     if(this.player.hunger<=0)this.player.hp=Math.max(0,this.player.hp-2*dt);
     if(this.msgTimer>0)this.msgTimer--;
     this.updateUI();
@@ -467,212 +609,147 @@ class Game {
       else if(t===TREE){const h=oh*ELEV;this.ctx.fillStyle='#5a3a1a';this.ctx.fillRect(cx-3,cy-h,6,h);this.ctx.fillStyle='#1e5028';this.ctx.beginPath();this.ctx.arc(cx,cy-h,TW/2.5,0,Math.PI*2);this.ctx.fill();this.ctx.fillStyle='#2a6a32';this.ctx.beginPath();this.ctx.arc(cx-4,cy-h-3,TW/4,0,Math.PI*2);this.ctx.fill();}
       else if(t===HOME){this.ctx.fillStyle='#c83c3c';this.ctx.fillRect(cx-14,cy-20,28,20);this.ctx.fillStyle='#8a2828';this.ctx.beginPath();this.ctx.moveTo(cx-16,cy-20);this.ctx.lineTo(cx,cy-32);this.ctx.lineTo(cx+16,cy-20);this.ctx.closePath();this.ctx.fill();}
     }
-    if(vis==='near'&&is.resources[`${x},${y}`]){this.ctx.fillStyle='#78c8ff';this.ctx.beginPath();this.ctx.arc(cx,cy,6,0,Math.PI*2);this.ctx.fill();}
+    if(vis==='near'&&is.resources[`${x},${y}`]){const r=is.resources[`${x},${y}`];this.ctx.fillStyle=r==='ore'?'#e0c0e0':'#78c8ff';this.ctx.beginPath();this.ctx.arc(cx,cy,6,0,Math.PI*2);this.ctx.fill();}
     else if(vis==='far'&&is.resources[`${x},${y}`]){this.ctx.fillStyle='#3c6478';this.ctx.beginPath();this.ctx.arc(cx,cy,4,0,Math.PI*2);this.ctx.fill();}
   }
+  drawTrap(tp){
+    const vis=this.visible(Math.round(tp.x),Math.round(tp.y));if(vis!=='near'&&vis!=='far')return;
+    const e=this.island.getElevAt(tp.x,tp.y);const ps=this.toScreen(tp.x,tp.y,e);const center=this.toScreen(this.camX,this.camY);
+    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;const ctx=this.ctx;
+    if(tp.triggered){ctx.strokeStyle='rgba(200,80,40,0.6)';}else{ctx.strokeStyle='rgba(120,200,80,0.7)';}
+    ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(px-6,py-3);ctx.lineTo(px+6,py+3);ctx.moveTo(px+6,py-3);ctx.lineTo(px-6,py+3);ctx.stroke();
+    ctx.strokeStyle='rgba(120,200,80,0.4)';ctx.beginPath();ctx.arc(px,py,8,0,Math.PI*2);ctx.stroke();
+  }
+  drawHowlEffect(h){
+    const vis=this.visible(Math.round(h.x),Math.round(h.y));if(vis!=='near'&&vis!=='far')return;
+    const e=this.island.getElevAt(h.x,h.y);const ps=this.toScreen(h.x,h.y,e);const center=this.toScreen(this.camX,this.camY);
+    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;const ctx=this.ctx;
+    const r=(1.5-h.t)*20;ctx.strokeStyle=`rgba(255,60,60,${h.t/1.5*0.6})`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle=`rgba(255,60,60,${h.t/1.5})`;ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('嗷',px,py-8);
+  }
   drawAnimal(a){
-    const vis=this.visible(Math.round(a.x),Math.round(a.y));
-    if(vis!=='near'&&vis!=='far')return;
-    const e=this.island.getElevAt(a.x,a.y);
-    const ps=this.toScreen(a.x,a.y,e);
-    const center=this.toScreen(this.camX,this.camY);
-    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;
-    const ctx=this.ctx;
-    // 阴影
+    const vis=this.visible(Math.round(a.x),Math.round(a.y));if(vis!=='near'&&vis!=='far')return;
+    const e=this.island.getElevAt(a.x,a.y);const ps=this.toScreen(a.x,a.y,e);const center=this.toScreen(this.camX,this.camY);
+    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;const ctx=this.ctx;
     ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(px,py+4,7,3.5,0,0,Math.PI*2);ctx.fill();
-    if(a.state==='dead'){
-      ctx.fillStyle='#6a4a2a';ctx.beginPath();ctx.ellipse(px,py,10,6,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#8a6a4a';ctx.beginPath();ctx.ellipse(px-2,py-1,7,4,0,0,Math.PI*2);ctx.fill();
-      if(!a.looted){ctx.fillStyle='#ffd040';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('可采集',px,py-10);}
-      return;
-    }
+    if(a.state==='dead'){ctx.fillStyle='#6a4a2a';ctx.beginPath();ctx.ellipse(px,py,10,6,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8a6a4a';ctx.beginPath();ctx.ellipse(px-2,py-1,7,4,0,0,Math.PI*2);ctx.fill();if(!a.looted){ctx.fillStyle='#ffd040';ctx.font='10px sans-serif';ctx.textAlign='center';ctx.fillText('可采集',px,py-10);}return;}
     const flash=a.hitFlash>0;
-    // 朝向(等距变换: 游戏空间角度 → 屏幕角度)
     const facingScreen=Math.atan2(Math.sin(a.facing)+Math.cos(a.facing),Math.cos(a.facing)-Math.sin(a.facing));
+    // 部位高亮(头/心/前腿/腹/后腿) - 玩家有矛或近战范围内
+    if(vis==='near'&&a.hp>0&&(this.player.spears>0||(this.player.axes>0&&Math.hypot(a.x-this.player.x,a.y-this.player.y)<MELEE_RANGE+0.5))){
+      const locked=this.lockedPart;
+      for(const p of a.parts()){
+        const hs=this.toScreen(p.x,p.y,e);
+        const hx=hs.sx+this.W/2-center.sx,hy=hs.sy+this.H/2-center.sy;
+        const isLocked=(locked&&locked.animal===a&&locked.part.key===p.key);
+        ctx.globalAlpha=isLocked?0.95:0.4;
+        ctx.fillStyle=p.color;
+        ctx.beginPath();ctx.arc(hx,hy,isLocked?6:3.5,0,Math.PI*2);ctx.fill();
+        if(isLocked){ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();ctx.fillStyle='#fff';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(p.label+' x'+p.mult,hx,hy-9);}
+        ctx.globalAlpha=1;
+      }
+    }
     ctx.save();ctx.translate(px,py-2);ctx.rotate(facingScreen);
-    if(a.type==='deer'){
-      // 身体(椭圆, 头在前方)
-      ctx.fillStyle=flash?'#fff':'#c8a878';ctx.beginPath();ctx.ellipse(0,0,7,5,0,0,Math.PI*2);ctx.fill();
-      // 头
-      ctx.fillStyle=flash?'#fff':'#a88858';ctx.beginPath();ctx.ellipse(4,-1,3,2.5,0,0,Math.PI*2);ctx.fill();
-      // 鹿角
-      ctx.strokeStyle=flash?'#fff':'#8a6840';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(5,-2);ctx.lineTo(7,-6);ctx.moveTo(5,-2);ctx.lineTo(3,-6);ctx.stroke();
-    } else {
-      ctx.fillStyle=flash?'#fff':'#5a5a5a';ctx.beginPath();ctx.ellipse(0,0,8,5,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=flash?'#fff':'#3a3a3a';ctx.beginPath();ctx.ellipse(5,-1,3,2.5,0,0,Math.PI*2);ctx.fill();
-      // 红眼(攻击中)
-      if(a.state==='attack'||a.state==='chase'){ctx.fillStyle='#ff3030';ctx.beginPath();ctx.arc(6,-2,1.5,0,Math.PI*2);ctx.fill();}
-    }
+    if(a.type==='deer'){ctx.fillStyle=flash?'#fff':'#c8a878';ctx.beginPath();ctx.ellipse(0,0,7,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=flash?'#fff':'#a88858';ctx.beginPath();ctx.ellipse(4,-1,3,2.5,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle=flash?'#fff':'#8a6840';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(5,-2);ctx.lineTo(7,-6);ctx.moveTo(5,-2);ctx.lineTo(3,-6);ctx.stroke();}
+    else{ctx.fillStyle=flash?'#fff':'#5a5a5a';ctx.beginPath();ctx.ellipse(0,0,8,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=flash?'#fff':'#3a3a3a';ctx.beginPath();ctx.ellipse(5,-1,3,2.5,0,0,Math.PI*2);ctx.fill();if(a.state==='attack'||a.state==='chase'){ctx.fillStyle='#ff3030';ctx.beginPath();ctx.arc(6,-2,1.5,0,Math.PI*2);ctx.fill();}}
     ctx.restore();
-    // 状态标记(吃草/警惕)
-    if(vis==='near'){
-      if(a.state==='graze'){ctx.fillStyle='rgba(180,220,160,0.6)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('吃草',px,py-13);}
-      else if(a.state==='alert'){ctx.fillStyle='rgba(255,200,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('?!',px,py-13);}
-      else if(a.state==='chase'||a.state==='attack'){ctx.fillStyle='rgba(255,60,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('!',px,py-13);}
-      else if(a.state==='flee'){ctx.fillStyle='rgba(255,140,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('逃',px,py-13);}
-    }
-    // 血条
-    if(a.hp<a.maxHp){
-      const bw=16,bh=3,bx=px-bw/2,by=py-18;
-      ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);
-      ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);
-      const hpRatio=a.hp/a.maxHp;
-      ctx.fillStyle=hpRatio>0.5?'#4ade4a':hpRatio>0.25?'#e0a028':'#d83838';
-      ctx.fillRect(bx,by,bw*hpRatio,bh);
-    }
-    if(a.bleed>0.1){
-      ctx.fillStyle='rgba(200,40,40,0.7)';
-      ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('流血',px,py-22);
-    }
+    if(vis==='near'){if(a.state==='graze'){ctx.fillStyle='rgba(180,220,160,0.6)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('吃草',px,py-13);}else if(a.state==='alert'){ctx.fillStyle='rgba(255,200,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('?!',px,py-13);}else if(a.state==='chase'||a.state==='attack'){ctx.fillStyle='rgba(255,60,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(a.packRole==='flank'?'围':'!',px,py-13);}else if(a.state==='flee'){ctx.fillStyle='rgba(255,140,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('逃',px,py-13);}}
+    if(a.hp<a.maxHp){const bw=16,bh=3,bx=px-bw/2,by=py-18;ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);const hpRatio=a.hp/a.maxHp;ctx.fillStyle=hpRatio>0.5?'#4ade4a':hpRatio>0.25?'#e0a028':'#d83838';ctx.fillRect(bx,by,bw*hpRatio,bh);}
+    if(a.bleed>0.1){ctx.fillStyle='rgba(200,40,40,0.7)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('流血',px,py-22);}
+    if(a.trapSlowT>0){ctx.fillStyle='rgba(120,200,80,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('陷阱!',px,py-26);}
   }
   drawSpear(s){
-    const e=this.island.getElevAt(s.x,s.y);
-    const ps=this.toScreen(s.x,s.y,e);
-    const center=this.toScreen(this.camX,this.camY);
-    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;
-    const ctx=this.ctx;
-    const ang=Math.atan2(s.dy,s.dx);
-    // 等距下,屏幕方向 = (dx-dy, dx+dy) 归一
+    const e=this.island.getElevAt(s.x,s.y);const ps=this.toScreen(s.x,s.y,e);const center=this.toScreen(this.camX,this.camY);
+    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;const ctx=this.ctx;
     const sdx=s.dx-s.dy,sdy=(s.dx+s.dy)*0.5;
-    const slen=Math.hypot(sdx,sdy)||1;
     ctx.save();ctx.translate(px,py);ctx.rotate(Math.atan2(sdy,sdx));
-    ctx.strokeStyle='#c8a040';ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(6,0);ctx.stroke();
-    ctx.fillStyle='#e0c060';ctx.beginPath();ctx.moveTo(6,0);ctx.lineTo(10,-2);ctx.lineTo(10,2);ctx.closePath();ctx.fill();
+    ctx.strokeStyle=s.color;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(6,0);ctx.stroke();
+    ctx.fillStyle=s.color;ctx.beginPath();ctx.moveTo(6,0);ctx.lineTo(10,-2);ctx.lineTo(10,2);ctx.closePath();ctx.fill();
     ctx.restore();
   }
   draw(){
-    const ctx=this.ctx;
-    ctx.fillStyle='#0a0c12';ctx.fillRect(0,0,this.W,this.H);
+    const ctx=this.ctx;ctx.fillStyle='#0a0c12';ctx.fillRect(0,0,this.W,this.H);
     const rangeX=Math.ceil(this.W/TW)+3,rangeY=Math.ceil(this.H/TH)+6;
     const cx0=Math.floor(this.camX)-rangeX,cx1=Math.ceil(this.camX)+rangeX;
     const cy0=Math.floor(this.camY)-rangeY,cy1=Math.ceil(this.camY)+rangeY;
     for(let s=cx0+cy0;s<=cx1+cy1;s++){for(let x=Math.max(cx0,s-cy1);x<=Math.min(cx1,s-cy0);x++){const y=s-x;if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H)this.drawTile(x,y);}}
-
-    // 动物和矛按等距y排序
+    // 陷阱(地面层)
+    for(const tp of this.traps)this.drawTrap(tp);
+    // 动物/矛/玩家按y排序
     const drawables=[];
     for(const a of this.animals)drawables.push({y:a.y+a.x,fn:()=>this.drawAnimal(a)});
     for(const s of this.spears_flying)drawables.push({y:s.y+s.x+0.01,fn:()=>this.drawSpear(s)});
     drawables.sort((a,b)=>a.y-b.y);
-    // 玩家也加入排序
-    const pY=this.player.y+this.player.x;
-    let pInserted=false;
-    for(let i=0;i<drawables.length;i++){
-      if(!pInserted&&drawables[i].y>pY){this.drawPlayer();pInserted=true;}
-      drawables[i].fn();
-    }
+    const pY=this.player.y+this.player.x;let pInserted=false;
+    for(let i=0;i<drawables.length;i++){if(!pInserted&&drawables[i].y>pY){this.drawPlayer();pInserted=true;}drawables[i].fn();}
     if(!pInserted)this.drawPlayer();
-
+    // 嗥叫特效(顶层)
+    for(const h of this.howlEffects)this.drawHowlEffect(h);
     const night=Math.abs(this.dayTime-50)/50;
     if(night>0.3){ctx.fillStyle=`rgba(0,0,0,${(night-0.3)/0.7*0.6})`;ctx.fillRect(0,0,this.W,this.H);}
-    if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='15px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.6,w,30);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.6+20);}
+    if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='14px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.6,w,28);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.6+19);}
   }
   drawPlayer(){
-    const ctx=this.ctx;
-    const ph=this.player.getHeight(this.island);
-    const ps=this.toScreen(this.player.x,this.player.y,ph);
-    const center=this.toScreen(this.camX,this.camY);
+    const ctx=this.ctx;const ph=this.player.getHeight(this.island);
+    const ps=this.toScreen(this.player.x,this.player.y,ph);const center=this.toScreen(this.camX,this.camY);
     const ppx=ps.sx+this.W/2-center.sx,ppy=ps.sy+this.H/2-center.sy;
+    const w=this.player.getWeapon();
     ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(ppx,ppy+6,8,4,0,0,Math.PI*2);ctx.fill();
-    // 朝向(等距变换)
     const f=this.player.facing;
     const facingScreen=Math.atan2(Math.sin(f)+Math.cos(f),Math.cos(f)-Math.sin(f));
-    // 投矛射程提示(有矛且耐力够时显示)
-    if(this.player.spears>0&&this.player.stamina>=STAM_THROW){
-      const endX=this.player.x+Math.cos(f)*SPEAR_RANGE;
-      const endY=this.player.y+Math.sin(f)*SPEAR_RANGE;
-      const endE=this.island.getElevAt(endX,endY);
-      const endP=this.toScreen(endX,endY,endE);
+    // 投矛射程
+    if(this.player.spears>0&&this.player.stamina>=w.throwStam){
+      const endX=this.player.x+Math.cos(f)*SPEAR_RANGE,endY=this.player.y+Math.sin(f)*SPEAR_RANGE;
+      const endE=this.island.getElevAt(endX,endY);const endP=this.toScreen(endX,endY,endE);
       const ex=endP.sx+this.W/2-center.sx,ey=endP.sy+this.H/2-center.sy;
-      // 射程线(虚线)
-      ctx.strokeStyle=this.throwQueued?'rgba(255,200,80,0.9)':'rgba(255,200,80,0.35)';
-      ctx.lineWidth=this.throwQueued?2.5:1.5;
-      ctx.setLineDash([6,4]);
-      ctx.beginPath();ctx.moveTo(ppx,ppy);ctx.lineTo(ex,ey);ctx.stroke();
-      ctx.setLineDash([]);
-      // 射程终点圆
-      ctx.fillStyle=this.throwQueued?'rgba(255,200,80,0.5)':'rgba(255,200,80,0.2)';
+      ctx.strokeStyle=this.throwQueued?'rgba(255,200,80,0.9)':'rgba(255,200,80,0.3)';
+      ctx.lineWidth=this.throwQueued?2.5:1.5;ctx.setLineDash([6,4]);
+      ctx.beginPath();ctx.moveTo(ppx,ppy);ctx.lineTo(ex,ey);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=this.throwQueued?'rgba(255,200,80,0.5)':'rgba(255,200,80,0.15)';
       ctx.beginPath();ctx.arc(ex,ey,this.throwQueued?8:5,0,Math.PI*2);ctx.fill();
     }
-    // 近战扇形提示(有斧且耐力够时显示)
-    if(this.player.axes>0&&this.player.stamina>=MELEE_STAM){
+    // 近战扇形
+    if(this.player.axes>0&&this.player.stamina>=w.meleeStam){
       ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);
-      const r=MELEE_RANGE*TW*0.5; // 等距下半径近似
-      const alpha=this.meleeQueued?0.35:(this.meleeAnim>0?0.5:0.12);
-      ctx.fillStyle=`rgba(255,120,60,${alpha})`;
-      ctx.beginPath();
-      ctx.moveTo(0,0);
-      ctx.arc(0,0,r,-MELEE_ARC,MELEE_ARC);
-      ctx.closePath();ctx.fill();
-      ctx.strokeStyle=`rgba(255,150,80,${this.meleeQueued?0.8:0.3})`;
-      ctx.lineWidth=this.meleeQueued?2:1;
-      ctx.stroke();
-      ctx.restore();
+      const r=MELEE_RANGE*TW*0.5;const alpha=this.meleeQueued?0.35:(this.meleeAnim>0?0.5:0.1);
+      ctx.fillStyle=`rgba(255,120,60,${alpha})`;ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,r,-MELEE_ARC,MELEE_ARC);ctx.closePath();ctx.fill();
+      ctx.strokeStyle=`rgba(255,150,80,${this.meleeQueued?0.8:0.25})`;ctx.lineWidth=this.meleeQueued?2:1;ctx.stroke();ctx.restore();
     }
-    // 挥砍动画(石斧弧线)
-    if(this.meleeAnim>0){
-      const prog=1-this.meleeAnim/0.25;
-      ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);
-      const swingAng=-MELEE_ARC+prog*MELEE_ARC*2;
-      const r=MELEE_RANGE*TW*0.5;
-      ctx.strokeStyle=`rgba(255,200,120,${1-prog})`;
-      ctx.lineWidth=3;
-      ctx.beginPath();
-      ctx.arc(0,0,r*0.6,swingAng-0.3,swingAng+0.3);
-      ctx.stroke();
-      // 斧头
-      const ax=Math.cos(swingAng)*r*0.7,ay=Math.sin(swingAng)*r*0.7;
-      ctx.fillStyle=`rgba(200,180,160,${1-prog})`;
-      ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill();
-      ctx.restore();
-    }
-    // 身体(圆形+朝向"鼻")
+    // 挥砍动画
+    if(this.meleeAnim>0){const prog=1-this.meleeAnim/0.25;ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);const swingAng=-MELEE_ARC+prog*MELEE_ARC*2;const r=MELEE_RANGE*TW*0.5;ctx.strokeStyle=`rgba(255,200,120,${1-prog})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,r*0.6,swingAng-0.3,swingAng+0.3);ctx.stroke();const ax=Math.cos(swingAng)*r*0.7,ay=Math.sin(swingAng)*r*0.7;ctx.fillStyle=w.color;ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill();ctx.restore();}
     const invuln=this.player.invuln>0&&Math.floor(this.player.invuln*10)%2;
+    const sneakAlpha=this.player.sneak?0.6:1;
+    ctx.globalAlpha=sneakAlpha;
     ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);
-    // 朝向箭头(星际风格)
-    ctx.fillStyle=invuln?'#fff':'rgba(255,220,100,0.85)';
-    ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(6,-5);ctx.lineTo(6,5);ctx.closePath();ctx.fill();
+    ctx.fillStyle=invuln?'#fff':w.color;ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(6,-5);ctx.lineTo(6,5);ctx.closePath();ctx.fill();
     ctx.restore();
-    // 身体
     ctx.fillStyle=invuln?'#fff':'#ff8c3c';ctx.beginPath();ctx.arc(ppx,ppy,9,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
-    // 玩家血条(头顶)
-    if(this.player.hp<PLAYER_MAX_HP){
-      const bw=20,bh=3,bx=ppx-bw/2,by=ppy-16;
-      ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);
-      ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);
-      const r=this.player.hp/PLAYER_MAX_HP;
-      ctx.fillStyle=r>0.5?'#4ade4a':r>0.25?'#e0a028':'#d83838';
-      ctx.fillRect(bx,by,bw*r,bh);
-    }
+    if(this.player.sneak){ctx.fillStyle='rgba(100,180,255,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('潜行',ppx,ppy-18);}
+    ctx.globalAlpha=1;
+    if(this.player.hp<PLAYER_MAX_HP){const bw=20,bh=3,bx=ppx-bw/2,by=ppy-16;ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);const r=this.player.hp/PLAYER_MAX_HP;ctx.fillStyle=r>0.5?'#4ade4a':r>0.25?'#e0a028':'#d83838';ctx.fillRect(bx,by,bw*r,bh);}
   }
   updateUI(){
     const p=this.player;
-    const hpR=p.hp/PLAYER_MAX_HP;
-    const hf=document.getElementById('hp-fill');
-    hf.style.width=(hpR*100)+'%';hf.className='fill hp-fill'+(hpR<0.4?'':' ')+(hpR<0.4?'':'');hf.style.background=hpR>0.5?'#4ade4a':hpR>0.25?'#e0a028':'#d83838';
+    const hpR=p.hp/PLAYER_MAX_HP;const hf=document.getElementById('hp-fill');
+    hf.style.width=(hpR*100)+'%';hf.style.background=hpR>0.5?'#4ade4a':hpR>0.25?'#e0a028':'#d83838';
     document.getElementById('hp-val').textContent=Math.floor(p.hp);
     document.getElementById('stam-fill').style.width=(p.stamina/PLAYER_MAX_STAM*100)+'%';
     document.getElementById('stam-val').textContent=Math.floor(p.stamina);
-    const hg=document.getElementById('hunger-fill');
-    hg.style.width=p.hunger+'%';hg.className='fill hunger-fill'+(p.hunger<30?' low':'');
+    const hg=document.getElementById('hunger-fill');hg.style.width=p.hunger+'%';hg.className='fill hunger-fill'+(p.hunger<30?' low':'');
     document.getElementById('hunger-val').textContent=Math.floor(p.hunger);
-    document.getElementById('inv').textContent=`皮${p.inv.hide}肉${p.inv.meat}木${p.inv.wood}晶${p.inv.crystal}鱼${p.inv.fish}`;
+    document.getElementById('inv').textContent=`皮${p.inv.hide}肉${p.inv.meat}木${p.inv.wood}晶${p.inv.crystal}骨${p.inv.bone}矿${p.inv.ore}鱼${p.inv.fish}`;
     document.getElementById('spears').textContent=p.spears;
     document.getElementById('axes').textContent=p.axes;
+    document.getElementById('traps').textContent=p.traps;
+    document.getElementById('weapon-tier').textContent=p.getWeapon().name;
     const icon=document.getElementById('dn-icon'),label=document.getElementById('dn-label');
     if(this.dayTime<50){icon.textContent='☀';icon.style.left=(this.dayTime/50*50)+'%';label.textContent='白天';}
     else{icon.textContent='🌙';icon.style.left=(50+(this.dayTime-50)/50*50)+'%';label.textContent='黑夜';}
   }
-  loop(now){
-    if(!now)now=performance.now();
-    const dt=Math.min(0.05,(now-this.lastTime)/1000);
-    this.lastTime=now;
-    this.update(dt);
-    this.draw();
-    requestAnimationFrame(t=>this.loop(t));
-  }
+  loop(now){if(!now)now=performance.now();const dt=Math.min(0.05,(now-this.lastTime)/1000);this.lastTime=now;this.update(dt);this.draw();requestAnimationFrame(t=>this.loop(t));}
 }
 new Game();
 </script>
