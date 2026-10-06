@@ -1001,12 +1001,9 @@ class Game{
     const w=this.screenToWorld(sx,sy);
     const a=this.findAnimalAt(w.x,w.y);
     if(a){
-      // 转向猎物并近战
-      const dx=a.x-this.player.x,dy=a.y-this.player.y;
-      const len=Math.hypot(dx,dy)||1;
-      this.player.faceX=dx/len;this.player.faceY=dy/len;
-      this.player.facing=Math.atan2(dy,dx);
-      this.meleeQueued=true;
+      // 跑向猎物并近战(追上自动攻击)
+      this.moveTarget={x:a.x,y:a.y,action:'melee',target:a,range:MELEE_RANGE+0.3};
+      this.showMsg(`追击${a.type==='deer'?'鹿':'狼'}!`);
       return;
     }
     const c=this.findCorpseAt(w.x,w.y);
@@ -1476,7 +1473,25 @@ class Game{
         if(mt.action==='collect')this.doCollect();
         else if(mt.action==='fish')this.doFish();
         else if(mt.action==='mine')this.mineRock(mt.tx,mt.ty);
-      }else{dx=mdx/mdist;dy=mdy/mdist;}
+        else if(mt.action==='melee'&&mt.target&&mt.target.state!=='dead'){
+          // 转向目标并近战
+          const t=mt.target;
+          const dx=t.x-this.player.x,dy=t.y-this.player.y;
+          const len=Math.hypot(dx,dy)||1;
+          this.player.faceX=dx/len;this.player.faceY=dy/len;
+          this.player.facing=Math.atan2(dy,dx);
+          this.meleeQueued=true;
+        }
+      }else{
+        // 追击活体目标: 每帧更新坐标
+        if(mt.action==='melee'&&mt.target&&mt.target.state!=='dead'){
+          mt.x=mt.target.x;mt.y=mt.target.y;
+        }else if(mt.action==='melee'&&(mt.target&&mt.target.state==='dead')){
+          // 目标已死, 自动采集
+          mt.action='collect';mt.range=1.2;
+        }
+        dx=mdx/mdist;dy=mdy/mdist;
+      }
     }else if(dx!==0||dy!==0){this.moveTarget=null;} // 键盘操作取消自动移动
     const len=Math.hypot(dx,dy);
     if(len>0.1){dx/=len;dy/=len;this.player.faceX=dx;this.player.faceY=dy;this.player.facing=Math.atan2(dy,dx);}
