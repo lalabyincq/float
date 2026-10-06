@@ -227,30 +227,65 @@ class Island{
     for(let i=0;i<14;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if((this.tiles[y][x]===GRASS||this.tiles[y][x]===SAND)&&!this.resources[`${x},${y}`])this.resources[`${x},${y}`]=['crystal','hide','wood'][Math.floor(this.rand()*3)];}
     // 矿石(稀有, 在岩石旁)
     for(let i=0;i<6;i++){const x=3+Math.floor(this.rand()*(MAP_W-6)),y=3+Math.floor(this.rand()*(MAP_H-6));if(this.tiles[y][x]===GRASS)this.resources[`${x},${y}`]='ore';}
-    // === 地表细化: 噪声色差 + 花丛/水洼/灌木/碎石/草叶 ===
+    // === 地表细化: 噪声色差 + 花丛/水洼/灌木/碎石/草叶/倒木/蘑菇/睡莲 ===
     const n3=makeNoise(this.rand()*9999),n4=makeNoise(this.rand()*9999);
+    const n5=makeNoise(this.rand()*9999); // 沙地纹理噪声
     const flowerCols=['#ff6b6b','#ffd93d','#ff8cc8','#e8e0ff','#ffb347','#c8a0ff'];
+    // 水深图: 离岸越远越深
+    this.waterDepth=Array.from({length:MAP_H},()=>Array(MAP_W).fill(0));
+    for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+      if(this.tiles[y][x]===WATER){
+        let minD=99;
+        for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+          const nx=x+dx,ny=y+dy;
+          if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&this.tiles[ny][nx]!==WATER){
+            minD=Math.min(minD,Math.hypot(dx,dy));
+          }
+        }
+        this.waterDepth[y][x]=minD<99?minD:3;
+      }
+    }
+    // 湿沙标记: 毗邻水的沙地
+    this.wetSand={};
+    for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+      if(this.tiles[y][x]===SAND){
+        for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){
+          const nx=x+dx,ny=y+dy;
+          if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&this.tiles[ny][nx]===WATER){this.wetSand[`${x},${y}`]=true;break;}
+        }
+      }
+    }
     for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
       this.tileNoise[y][x]=this.rand();
+      const k=`${x},${y}`;
       if(this.tiles[y][x]===GRASS){
-        const k=`${x},${y}`;
         const fn=n3(x*0.22,y*0.22),pn=n4(x*0.18,y*0.18);
         if(fn>0.72){
-          // 花丛区(噪声聚类, 非散点)
           this.decor[k]={t:'flower',c:flowerCols[Math.floor(this.rand()*flowerCols.length)],ox:(this.rand()-0.5)*0.5,oy:(this.rand()-0.5)*0.3};
         } else if(pn<0.1&&this.elev[y][x]<1.0){
-          // 低洼水洼
           this.decor[k]={t:'puddle',s:0.3+this.rand()*0.3,rot:this.rand()*Math.PI};
+        } else if(this.rand()<0.04){
+          this.decor[k]={t:'mushroom',c:this.rand()<0.5?'#d04848':'#e8a040',ox:(this.rand()-0.5)*0.5,oy:(this.rand()-0.5)*0.3};
+        } else if(this.rand()<0.025){
+          // 倒木(横躺的枯木)
+          this.decor[k]={t:'log',rot:this.rand()*Math.PI,len:8+this.rand()*6};
         } else if(this.rand()<0.05){
           this.decor[k]={t:'bush',ox:(this.rand()-0.5)*0.4,oy:(this.rand()-0.5)*0.3};
         } else if(this.rand()<0.04){
           this.decor[k]={t:'pebble',ox:(this.rand()-0.5)*0.5,oy:(this.rand()-0.5)*0.3};
         } else if(this.rand()<0.5){
-          // 草叶纹理(细竖线)
           const blades=[];const n=1+Math.floor(this.rand()*3);
           for(let i=0;i<n;i++)blades.push({x:(this.rand()-0.5)*0.7,y:(this.rand()-0.5)*0.4,h:2+this.rand()*3});
           this.decor[k]={t:'grass',blades};
         }
+      } else if(this.tiles[y][x]===WATER){
+        // 睡莲(浅水区)
+        if(this.waterDepth[y][x]<1.5&&this.rand()<0.15){
+          this.decor[k]={t:'lily',s:2+this.rand()*2,ox:(this.rand()-0.5)*0.4,oy:(this.rand()-0.5)*0.4};
+        }
+      } else if(this.tiles[y][x]===SAND){
+        // 沙地涟漪纹理
+        this.decor[k]={t:'ripple',rot:n5(x*0.3,y*0.3)*Math.PI};
       }
     }
     this.home={x:Math.floor(cx),y:Math.floor(cy)};
@@ -1286,9 +1321,21 @@ class Game{
     const noise=(is.tileNoise[y][x]||0.5)*0.3-0.15; // -0.15~0.15
     let color;
     if(vis==='near'||vis==='far'){switch(t){
-      case WATER:color=lerpColor('#1a4a6a','#3a7aaa',0.3+noise);break;
+      case WATER:{
+        // === 水深渐变: 离岸越远越深 ===
+        const wd=is.waterDepth?is.waterDepth[y][x]:1;
+        const depthT=Math.min(1,wd/2.5);
+        color=lerpColor(lerpColor('#3a7aaa','#1a4a6a',depthT),'#0e2a4a',depthT*0.5);
+        color=lerpColor(color,lerpColor(color,'#0a1a3a',0.3),noise*0.3+0.5);
+        break;
+      }
       case GRASS:color=lerpColor('#224a26','#7aba4a',Math.min(1,Math.max(0,avgE/4+noise*0.4)));break;
-      case SAND:color=lerpColor('#b0a060','#d8c888',Math.min(1,Math.max(0,avgE+noise*0.3)));break;
+      case SAND:{
+        // === 湿沙: 毗邻水的沙地颜色更深 ===
+        const wet=is.wetSand&&is.wetSand[`${x},${y}`];
+        color=lerpColor(wet?'#8a7848':'#b0a060',wet?'#a89858':'#d8c888',Math.min(1,Math.max(0,avgE+noise*0.3)));
+        break;
+      }
       case ROCK:color=lerpColor('#6a5e52','#9a8e82',0.3+noise*0.5);break;
       case TREE:color=lerpColor('#224a26','#5a8a3a',Math.min(1,Math.max(0,avgE/4+noise*0.3)));break;
       case HOME:color=lerpColor('#2c6a36','#4ca856',0.4+noise*0.3);break;
@@ -1310,13 +1357,43 @@ class Game{
         ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();
       }
     }
-    if(t===WATER&&(vis==='near'||vis==='far')){ctx.strokeStyle='rgba(255,255,255,0.12)';ctx.lineWidth=1;const w=Math.sin((x+y)*0.5+this.dayTime*0.1)*2;ctx.beginPath();ctx.moveTo((pNW.x+pSW.x)/2+w,(pNW.y+pSW.y)/2);ctx.lineTo((pNE.x+pSE.x)/2+w,(pNE.y+pSE.y)/2);ctx.stroke();}
+    // === 岸边泡沫线 ===
+    if(t===WATER&&(vis==='near'||vis==='far')){
+      const wd=is.waterDepth?is.waterDepth[y][x]:1;
+      if(wd<1.2){
+        ctx.strokeStyle='rgba(220,240,255,0.25)';ctx.lineWidth=1.5;
+        ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.stroke();
+      }
+      ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;const w=Math.sin((x+y)*0.5+this.dayTime*0.1)*2;
+      ctx.beginPath();ctx.moveTo((pNW.x+pSW.x)/2+w,(pNW.y+pSW.y)/2);ctx.lineTo((pNE.x+pSE.x)/2+w,(pNE.y+pSE.y)/2);ctx.stroke();
+    }
     if(vis==='near'||vis==='far'){
-      if(t===ROCK){const h=oh*ELEV;ctx.fillStyle='#6e6458';ctx.beginPath();ctx.ellipse(cx,cy-h,TW/3,TH/3,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8a7e72';ctx.beginPath();ctx.ellipse(cx,cy-h-4,TW/3-2,TH/3-2,0,0,Math.PI*2);ctx.fill();}
-      else if(t===TREE){const h=oh*ELEV;ctx.fillStyle='#5a3a1a';ctx.fillRect(cx-3,cy-h,6,h);ctx.fillStyle='#1e5028';ctx.beginPath();ctx.arc(cx,cy-h,TW/2.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#2a6a32';ctx.beginPath();ctx.arc(cx-4,cy-h-3,TW/4,0,Math.PI*2);ctx.fill();}
+      if(t===ROCK){
+        const h=oh*ELEV;
+        // 岩石阴影(投在地面右下)
+        ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(cx+4,cy+2,TW/3,TH/4,0,0,Math.PI*2);ctx.fill();
+        // 岩石主体
+        ctx.fillStyle='#5a5048';ctx.beginPath();ctx.ellipse(cx,cy-h,TW/3,TH/3,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#7a6e62';ctx.beginPath();ctx.ellipse(cx,cy-h-3,TW/3-2,TH/3-1,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#9a8e82';ctx.beginPath();ctx.ellipse(cx-2,cy-h-5,TW/5,TH/6,0,0,Math.PI*2);ctx.fill();
+        // 裂纹
+        ctx.strokeStyle='rgba(40,35,30,0.4)';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(cx-4,cy-h-2);ctx.lineTo(cx+2,cy-h-6);ctx.stroke();
+      }
+      else if(t===TREE){
+        const h=oh*ELEV;
+        // 树阴影(投在地面右下)
+        ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(cx+5,cy+3,TW/3,TH/5,0,0,Math.PI*2);ctx.fill();
+        // 树干
+        ctx.fillStyle='#4a2e14';ctx.fillRect(cx-3,cy-h,6,h);
+        ctx.fillStyle='#6a4a28';ctx.fillRect(cx-2,cy-h,2,h);
+        // 树冠(多层)
+        ctx.fillStyle='#1a4818';ctx.beginPath();ctx.arc(cx,cy-h,TW/2.5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#2a6a28';ctx.beginPath();ctx.arc(cx-3,cy-h-2,TW/3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#3a8a30';ctx.beginPath();ctx.arc(cx-5,cy-h-4,TW/5,0,Math.PI*2);ctx.fill();
+      }
       else if(t===HOME){ctx.fillStyle='#c83c3c';ctx.fillRect(cx-14,cy-20,28,20);ctx.fillStyle='#8a2828';ctx.beginPath();ctx.moveTo(cx-16,cy-20);ctx.lineTo(cx,cy-32);ctx.lineTo(cx+16,cy-20);ctx.closePath();ctx.fill();}
     }
-    // === 地表装饰: 花丛/水洼/灌木/碎石/草叶 ===
+    // === 地表装饰: 花丛/水洼/灌木/碎石/草叶/蘑菇/倒木/睡莲/沙地涟漪 ===
     if(vis==='near'){
       const d=is.decor[`${x},${y}`];
       if(d){
@@ -1340,6 +1417,30 @@ class Game{
         } else if(d.t==='grass'){
           ctx.strokeStyle='rgba(50,100,35,0.4)';ctx.lineWidth=0.8;
           for(const b of d.blades){const bx=cx+b.x*16,by=cy+b.y*8;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(bx,by-b.h);ctx.stroke();}
+        } else if(d.t==='mushroom'){
+          const dx=cx+d.ox*10,dy=cy+d.oy*5;
+          ctx.fillStyle='#d0c8b0';ctx.fillRect(dx-0.5,dy,1,3);
+          ctx.fillStyle=d.c;ctx.beginPath();ctx.arc(dx,dy,2,Math.PI,0);ctx.fill();
+          ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.arc(dx-0.5,dy-0.3,0.6,0,Math.PI*2);ctx.fill();
+        } else if(d.t==='log'){
+          ctx.save();ctx.translate(cx,cy);ctx.rotate(d.rot);
+          ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(2,1,d.len*0.5,3,0,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='#4a3220';ctx.beginPath();ctx.ellipse(0,0,d.len*0.5,3,0,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='#5a4028';ctx.beginPath();ctx.ellipse(0,-1,d.len*0.5-1,2,0,0,Math.PI*2);ctx.fill();
+          // 年轮端面
+          ctx.fillStyle='#6a4830';ctx.beginPath();ctx.arc(-d.len*0.5,0,2,0,Math.PI*2);ctx.fill();
+          ctx.strokeStyle='#3a2210';ctx.lineWidth=0.5;ctx.beginPath();ctx.arc(-d.len*0.5,0,1,0,Math.PI*2);ctx.stroke();
+          ctx.restore();
+        } else if(d.t==='lily'){
+          const dx=cx+d.ox*10,dy=cy+d.oy*5;
+          ctx.fillStyle='rgba(20,60,20,0.8)';ctx.beginPath();ctx.ellipse(dx,dy,d.s,d.s*0.55,0,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='rgba(40,100,30,0.7)';ctx.beginPath();ctx.ellipse(dx-0.5,dy-0.5,d.s*0.7,d.s*0.4,0,0,Math.PI*2);ctx.fill();
+          if(d.s>3){ctx.fillStyle='#f8f8e8';ctx.beginPath();ctx.arc(dx,dy,1.5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ffd0e0';ctx.beginPath();ctx.arc(dx,dy,0.8,0,Math.PI*2);ctx.fill();}
+        } else if(d.t==='ripple'){
+          ctx.strokeStyle='rgba(120,100,60,0.18)';ctx.lineWidth=0.6;
+          ctx.save();ctx.translate(cx,cy);ctx.rotate(d.rot);
+          for(let i=0;i<3;i++){ctx.beginPath();ctx.ellipse(0,0,8-i*2,4-i*1,0,0,Math.PI);ctx.stroke();}
+          ctx.restore();
         }
       }
     }
