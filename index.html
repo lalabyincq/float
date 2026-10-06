@@ -41,6 +41,14 @@
   #btn-eat { right: 20px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
   #btn-craft { right: 20px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
   .btn.active { filter: brightness(1.5); box-shadow: 0 0 8px rgba(255,255,255,0.4); }
+  /* === PC端: 径向菜单 === */
+  #player-menu { position: fixed; z-index: 200; pointer-events: none; }
+  .menu-btn { position: absolute; width: 54px; height: 54px; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; pointer-events: auto; cursor: pointer; background: rgba(40,50,70,0.92); border: 2px solid rgba(120,180,255,0.6); color: #d0e8ff; transition: filter .1s, transform .1s; }
+  .menu-btn:hover { filter: brightness(1.4); transform: translate(-50%,-50%) scale(1.1); }
+  .menu-btn.disabled { opacity: 0.4; }
+  .menu-back { position: absolute; width: 40px; height: 40px; border-radius: 50%; font-size: 16px; pointer-events: auto; cursor: pointer; background: rgba(60,30,30,0.92); border: 2px solid rgba(220,120,80,0.5); color: #ffd0c0; display: flex; align-items: center; justify-content: center; transform: translate(-50%,-50%); }
+  .menu-back:hover { filter: brightness(1.4); }
+  #cursor-hint { position: fixed; z-index: 150; font-size: 10px; color: #aaa; background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 4px; pointer-events: none; white-space: nowrap; display: none; }
 </style>
 </head>
 <body>
@@ -59,6 +67,8 @@
 <div id="wind-indicator" style="position:fixed;top:calc(env(safe-area-inset-top,0)+42px);right:64px;font-size:16px;color:#88ccff;pointer-events:none;">➤</div>
 <div id="weather-indicator" style="position:fixed;top:calc(env(safe-area-inset-top,0)+42px);right:8px;font-size:16px;pointer-events:none;">☀</div>
 <div id="posture-indicator" style="position:fixed;top:calc(env(safe-area-inset-top,0)+60px);right:8px;font-size:11px;color:#c0e0ff;pointer-events:none;">行走</div>
+<div class="hint" id="desktop-hint" style="display:none;">单击转向 · 右键投矛 · 双击近战/采集/捕鱼 · 点角色菜单 · Shift潜行 · Space跳 · M骨哨</div>
+<div id="cursor-hint"></div>
 <div class="hint">瞄准线锁定部位 · 头×3 心×2 前腿僵直 · 陷阱减速 · 潜行 · 狼群围猎</div>
 <div id="joystick"><div id="stick"></div></div>
 <div class="btn" id="btn-sneak">潜行</div>
@@ -859,6 +869,8 @@ class Game{
   resize(){this.W=window.innerWidth;this.H=window.innerHeight;this.canvas.width=this.W*devicePixelRatio;this.canvas.height=this.H*devicePixelRatio;this.canvas.style.width=this.W+'px';this.canvas.style.height=this.H+'px';this.ctx.scale(devicePixelRatio,devicePixelRatio);}
   toScreen(x,y,elev=0){return{sx:(x-y)*TW/2,sy:(x+y)*TH/2-elev*ELEV};}
   setupInput(){
+    const isTouch=window.matchMedia('(any-pointer:coarse)').matches&&!window.matchMedia('(any-pointer:fine)').matches;
+    if(!isTouch){document.getElementById('joystick').style.display='none';document.querySelectorAll('.btn').forEach(b=>b.style.display='none');document.getElementById('desktop-hint').style.display='block';}
     const joy=document.getElementById('joystick'),stick=document.getElementById('stick');
     let active=false,cx=0,cy=0;
     const set=(dx,dy)=>{const max=35;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;this.moveDX=dx/max;this.moveDY=dy/max;};
@@ -886,7 +898,241 @@ class Game{
     window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='k')this.meleeQueued=true;if(e.key==='x')this.doTrap();if(e.key==='z')this.doTranq();if(e.key==='v')this.doFire();if(e.key==='b')this.doDrink();if(e.key==='n')this.doSleep();if(e.key==='m')this.doWhistle();if(e.key==='Shift')this.toggleSneak();if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();if(e.key==='g')this.toggleCall();if(e.key==='t')this.doFeed();});
     window.addEventListener('keyup',e=>keys[e.key]=false);
     this.getKeys=()=>{let dx=0,dy=0;if(keys['ArrowUp']||keys['w'])dy-=1;if(keys['ArrowDown']||keys['s'])dy+=1;if(keys['ArrowLeft']||keys['a'])dx-=1;if(keys['ArrowRight']||keys['d'])dx+=1;return{dx,dy};};
+    // === PC端: 鼠标操作 (始终启用, 不干扰触屏) ===
+    this.setupMouse();
   }
+  // === 屏幕坐标→世界坐标(逆等距投影) ===
+  screenToWorld(sx,sy){
+    const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
+    const lx=sx-this.W/2+camSX,ly=sy-this.H/2+camSY;
+    return{x:lx/TW+ly/TH,y:-lx/TW+ly/TH};
+  }
+  // === 查找点击位置附近的实体 ===
+  findAnimalAt(wx,wy){
+    let best=null,bestD=1.0;
+    for(const a of this.animals){
+      if(a.state==='dead')continue;
+      const d=Math.hypot(a.x-wx,a.y-wy);
+      if(d<bestD){bestD=d;best=a;}
+    }
+    return best;
+  }
+  findCorpseAt(wx,wy){
+    for(const a of this.animals){
+      if(a.state!=='dead'||a.looted)continue;
+      if(Math.hypot(a.x-wx,a.y-wy)<1.0)return a;
+    }
+    return null;
+  }
+  // === 鼠标事件设置 ===
+  setupMouse(){
+    const canvas=this.ctx.canvas;
+    let clickTimer=null,lastClick={x:0,y:0,t:0};
+    const curHint=document.getElementById('cursor-hint');
+    canvas.addEventListener('contextmenu',e=>e.preventDefault());
+    // 鼠标悬停提示
+    canvas.addEventListener('mousemove',e=>{
+      const rect=canvas.getBoundingClientRect();
+      const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
+      const w=this.screenToWorld(sx,sy);
+      const a=this.findAnimalAt(w.x,w.y);
+      const c=this.findCorpseAt(w.x,w.y);
+      const tx=Math.round(w.x),ty=Math.round(w.y);
+      let tip=null;
+      if(a){tip=`${a.type==='deer'?'鹿':'狼'} HP${Math.ceil(a.hp)}/${a.maxHp}${a.state==='flee'?' 逃跑':''}${a.rage?' 🔥':''}`;}
+      else if(c){tip='尸体(双击采集)';}
+      else if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H){
+        const t=this.island.tiles[ty][tx];
+        if(t===WATER)tip='水面(双击捕鱼)';
+        else if(t===ROCK)tip='矿石(双击采集)';
+        else if(t===TREE)tip='树木';
+      }
+      if(tip){curHint.textContent=tip;curHint.style.display='block';curHint.style.left=(sx+14)+'px';curHint.style.top=(sy-20)+'px';}
+      else curHint.style.display='none';
+    });
+    canvas.addEventListener('mouseleave',()=>curHint.style.display='none');
+    canvas.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      const rect=canvas.getBoundingClientRect();
+      const sx=e.clientX-rect.left,sy=e.clientY-rect.top;
+      if(e.button===2){
+        // 右键: 投矛
+        this.handleThrowAt(sx,sy);
+        return;
+      }
+      if(e.button!==0)return;
+      // 检测双击
+      const now=Date.now(),dt=now-lastClick.t,dist=Math.hypot(sx-lastClick.x,sy-lastClick.y);
+      if(dt<300&&dist<25){
+        if(clickTimer){clearTimeout(clickTimer);clickTimer=null;}
+        this.handleDoubleClick(sx,sy);
+        lastClick.t=0;
+      }else{
+        lastClick={x:sx,y:sy,t:now};
+        if(clickTimer)clearTimeout(clickTimer);
+        clickTimer=setTimeout(()=>{this.handleSingleClick(sx,sy);clickTimer=null;},250);
+      }
+    });
+  }
+  // === 单击: 转向 or 点角色弹出菜单 ===
+  handleSingleClick(sx,sy){
+    const w=this.screenToWorld(sx,sy);
+    const pd=Math.hypot(w.x-this.player.x,w.y-this.player.y);
+    if(pd<0.6){
+      // 点角色 → 弹出菜单
+      this.showPlayerMenu();
+      return;
+    }
+    // 转向
+    const dx=w.x-this.player.x,dy=w.y-this.player.y;
+    const len=Math.hypot(dx,dy)||1;
+    this.player.faceX=dx/len;this.player.faceY=dy/len;
+    this.player.facing=Math.atan2(dy,dx);
+  }
+  // === 双击: 近战/采集/捕鱼 ===
+  handleDoubleClick(sx,sy){
+    const w=this.screenToWorld(sx,sy);
+    const a=this.findAnimalAt(w.x,w.y);
+    if(a){
+      // 转向猎物并近战
+      const dx=a.x-this.player.x,dy=a.y-this.player.y;
+      const len=Math.hypot(dx,dy)||1;
+      this.player.faceX=dx/len;this.player.faceY=dy/len;
+      this.player.facing=Math.atan2(dy,dx);
+      this.meleeQueued=true;
+      return;
+    }
+    const c=this.findCorpseAt(w.x,w.y);
+    if(c){
+      // 采集尸体
+      this.doCollect();
+      return;
+    }
+    const tx=Math.round(w.x),ty=Math.round(w.y);
+    if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H){
+      const t=this.island.tiles[ty][tx];
+      if(t===WATER){
+        // 双击水面→捕鱼/喝水(根据距离)
+        const pd=Math.hypot(tx-this.player.x,ty-this.player.y);
+        if(pd<3)this.doFish();
+        else this.showMsg('太远了, 靠近水域');
+        return;
+      }
+      if(t===ROCK){
+        // 双击矿石→采集
+        this.mineRock(tx,ty);
+        return;
+      }
+    }
+    // 落地转向
+    this.handleSingleClick(sx,sy);
+  }
+  // === 右键: 投矛 ===
+  handleThrowAt(sx,sy){
+    const w=this.screenToWorld(sx,sy);
+    const a=this.findAnimalAt(w.x,w.y);
+    if(a){
+      const dx=a.x-this.player.x,dy=a.y-this.player.y;
+      const len=Math.hypot(dx,dy)||1;
+      this.player.faceX=dx/len;this.player.faceY=dy/len;
+      this.player.facing=Math.atan2(dy,dx);
+    }else{
+      const dx=w.x-this.player.x,dy=w.y-this.player.y;
+      const len=Math.hypot(dx,dy)||1;
+      this.player.faceX=dx/len;this.player.faceY=dy/len;
+      this.player.facing=Math.atan2(dy,dx);
+    }
+    this.throwQueued=true;
+  }
+  // === 矿石采集 ===
+  mineRock(tx,ty){
+    const p=this.player;
+    const d=Math.hypot(tx-p.x,ty-p.y);
+    if(d>2.5){this.showMsg('太远了');return;}
+    if(!p.getPosture().canAttack){this.showMsg('卧倒中无法采集');return;}
+    if(p.stamina<5){this.showMsg('耐力不足');return;}
+    p.stamina-=5;
+    if(this.island.obsHeight[ty][tx]>0)this.island.obsHeight[ty][tx]--;
+    const roll=Math.random();
+    if(roll<0.3){p.inv.ore++;this.showMsg('采矿! 矿石+1');}
+    else if(roll<0.5){p.inv.crystal++;this.showMsg('采矿! 水晶+1');}
+    else if(roll<0.7){p.inv.stone=(p.inv.stone||0)+1;this.showMsg('采矿! 石头+1');}
+    else this.showMsg('采矿... 没挖到什么');
+    if(this.island.obsHeight[ty][tx]<=0){
+      this.island.tiles[ty][tx]=GRASS;
+      this.island.obsHeight[ty][tx]=0;
+      p.inv.ore+=2;p.inv.stone=(p.inv.stone||0)+2;
+      this.showMsg('矿脉挖尽! 矿石+2 石头+2');
+      this.renderTerrain();
+    }
+    this.updateUI();
+  }
+  // === 角色径向菜单 ===
+  showPlayerMenu(){
+    this.closePlayerMenu();
+    const ps=this.toScreen(this.player.x,this.player.y,this.player.getHeight(this.island));
+    const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
+    const px=ps.sx+this.W/2-camSX,py=ps.sy+this.H/2-camSY;
+    const menu=document.createElement('div');
+    menu.id='player-menu';menu.style.left=px+'px';menu.style.top=py+'px';
+    const items=[
+      {label:'喝水',fn:()=>this.doDrink()},
+      {label:'睡觉',fn:()=>this.doSleep()},
+      {label:'制作',fn:()=>this.showCraftMenu(px,py)},
+      {label:'进食',fn:()=>this.doEat()},
+      {label:'存仓',fn:()=>this.doDeposit()},
+      {label:'火堆',fn:()=>this.doFire()},
+    ];
+    const radius=55;
+    items.forEach((item,i)=>{
+      const ang=(i/items.length)*Math.PI*2-Math.PI/2;
+      const bx=Math.cos(ang)*radius,by=Math.sin(ang)*radius;
+      const btn=document.createElement('div');
+      btn.className='menu-btn';btn.textContent=item.label;
+      btn.style.left=bx+'px';btn.style.top=by+'px';btn.style.transform='translate(-50%,-50%)';
+      btn.addEventListener('click',ev=>{ev.stopPropagation();item.fn();});
+      menu.appendChild(btn);
+    });
+    document.body.appendChild(menu);
+    const closer=ev=>{if(!menu.contains(ev.target)){this.closePlayerMenu();document.removeEventListener('mousedown',closer);}};
+    setTimeout(()=>document.addEventListener('mousedown',closer),10);
+  }
+  showCraftMenu(px,py){
+    this.closePlayerMenu();
+    const menu=document.createElement('div');
+    menu.id='player-menu';menu.style.left=px+'px';menu.style.top=py+'px';
+    const p=this.player;
+    const recipes=[
+      {label:'矛+斧',req:()=>p.inv.wood>=1&&p.inv.crystal>=1,fn:()=>{p.inv.wood--;p.inv.crystal--;p.spears+=1;p.axes+=1;this.showMsg('制作 矛+1 斧+1');this.updateUI();}},
+      {label:'陷阱',req:()=>p.inv.wood>=2,fn:()=>{p.inv.wood-=2;p.traps+=1;this.showMsg('制作 陷阱+1');this.updateUI();}},
+      {label:'麻醉球',req:()=>p.inv.bone>=1&&p.inv.crystal>=1,fn:()=>{p.inv.bone--;p.inv.crystal--;p.tranqs+=2;this.showMsg('制作 麻醉球+2');this.updateUI();}},
+      {label:'骨哨',req:()=>p.inv.bone>=2,fn:()=>{p.inv.bone-=2;p.whistles+=1;this.showMsg('制作 骨哨+1');this.updateUI();}},
+      {label:'骨器↑',req:()=>p.weaponTier==='stone'&&p.inv.bone>=3&&p.inv.wood>=2,fn:()=>{p.inv.bone-=3;p.inv.wood-=2;p.weaponTier='bone';this.showMsg('武器升级: 骨器!');this.updateUI();}},
+      {label:'金属↑',req:()=>p.weaponTier==='bone'&&p.inv.ore>=3&&p.inv.wood>=2,fn:()=>{p.inv.ore-=3;p.inv.wood-=2;p.weaponTier='metal';this.showMsg('武器升级: 金属器!');this.updateUI();}},
+    ];
+    const radius=55;
+    let n=0;
+    recipes.forEach((r)=>{
+      const can=r.req();
+      if(!can&&!r.label.includes('↑'))return; // 只显示可制作的(升级项即使不可做也显示为灰)
+      const ang=(n/recipes.length)*Math.PI*2-Math.PI/2;
+      const bx=Math.cos(ang)*radius,by=Math.sin(ang)*radius;
+      const btn=document.createElement('div');
+      btn.className='menu-btn'+(can?'':' disabled');btn.textContent=r.label;
+      btn.style.left=bx+'px';btn.style.top=by+'px';btn.style.transform='translate(-50%,-50%)';
+      if(can)btn.addEventListener('click',ev=>{ev.stopPropagation();r.fn();this.closePlayerMenu();});
+      menu.appendChild(btn);n++;
+    });
+    // 返回按钮
+    const back=document.createElement('div');
+    back.className='menu-back';back.textContent='←';back.style.left='0px';back.style.top='0px';
+    back.addEventListener('click',ev=>{ev.stopPropagation();this.showPlayerMenu();});
+    menu.appendChild(back);
+    document.body.appendChild(menu);
+    const closer=ev=>{if(!menu.contains(ev.target)){this.closePlayerMenu();document.removeEventListener('mousedown',closer);}};
+    setTimeout(()=>document.addEventListener('mousedown',closer),10);
+  }
+  closePlayerMenu(){const m=document.getElementById('player-menu');if(m)m.remove();}
   // === B4: 姿态循环 walk→crouch→prone→walk ===
   toggleSneak(){
     const seq=['walk','crouch','prone'];
