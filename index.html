@@ -28,11 +28,15 @@
   #btn-throw { right: 20px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.6); color: #fff0c8; }
   #btn-melee { right: 78px; bottom: calc(310px + env(safe-area-inset-bottom, 0)); background: rgba(100,50,30,0.85); border: 2px solid rgba(220,120,60,0.6); color: #ffd8c0; }
   #btn-trap { right: 78px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(50,80,40,0.85); border: 2px solid rgba(120,200,100,0.5); color: #d0ffd0; }
+  #btn-tranq { right: 136px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(80,40,80,0.85); border: 2px solid rgba(200,120,220,0.5); color: #f0d0ff; }
   #btn-sneak { right: 20px; bottom: calc(310px + env(safe-area-inset-bottom, 0)); background: rgba(40,60,80,0.85); border: 2px solid rgba(100,160,220,0.5); color: #c0e0ff; }
   #btn-jump { right: 78px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.85); border: 2px solid rgba(180,150,255,0.5); color: #e0d8ff; }
+  #btn-fire { right: 136px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(120,50,20,0.85); border: 2px solid rgba(255,140,40,0.6); color: #ffd0a0; }
   #btn-fish { right: 78px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.85); border: 2px solid rgba(100,180,255,0.5); color: #c8e8ff; }
+  #btn-drink { right: 136px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(30,80,120,0.85); border: 2px solid rgba(80,180,255,0.5); color: #d0e8ff; }
   #btn-collect { right: 20px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(40,90,60,0.85); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; }
   #btn-deposit { right: 78px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.85); border: 2px solid rgba(220,120,120,0.5); color: #ffd0d0; }
+  #btn-sleep { right: 136px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(40,40,80,0.85); border: 2px solid rgba(160,160,220,0.5); color: #d8d8ff; }
   #btn-eat { right: 20px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
   #btn-craft { right: 20px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
   .btn.active { filter: brightness(1.5); box-shadow: 0 0 8px rgba(255,255,255,0.4); }
@@ -44,8 +48,10 @@
   <div class="bar-wrap"><span>HP</span><div class="bar"><div id="hp-fill" class="fill" style="width:100%;background:#4ade4a"></div></div><span id="hp-val">100</span></div>
   <div class="bar-wrap"><span>耐力</span><div class="bar"><div id="stam-fill" class="fill stam-fill" style="width:100%"></div></div><span id="stam-val">100</span></div>
   <div class="bar-wrap"><span>饱</span><div class="bar"><div id="hunger-fill" class="fill hunger-fill" style="width:100%"></div></div><span id="hunger-val">100</span></div>
+  <div class="bar-wrap"><span>渴</span><div class="bar"><div id="thirst-fill" class="fill" style="width:100%;background:#4a90e0"></div></div><span id="thirst-val">100</span></div>
+  <div class="bar-wrap"><span>温</span><div class="bar"><div id="temp-fill" class="fill" style="width:50%;background:#e08040"></div></div><span id="temp-val">50</span></div>
   <div class="stat" id="weapon-tier">石器</div>
-  <div class="stat">矛<span id="spears">3</span>斧<span id="axes">1</span>陷<span id="traps">2</span></div>
+  <div class="stat">矛<span id="spears">3</span>斧<span id="axes">1</span>陷<span id="traps">2</span>麻<span id="tranqs">0</span></div>
   <div class="stat">包:<span id="inv">皮0肉0木0晶0骨0矿0鱼0</span></div>
 </div>
 <div id="daynight-bar"><div class="dn-day"></div><div class="dn-night"></div><div class="dn-icon" id="dn-icon">☀</div><div class="dn-label" id="dn-label">白天</div></div>
@@ -54,12 +60,16 @@
 <div class="btn" id="btn-sneak">潜行</div>
 <div class="btn" id="btn-melee">近战</div>
 <div class="btn" id="btn-trap">陷阱</div>
+<div class="btn" id="btn-tranq">麻醉</div>
 <div class="btn" id="btn-throw">投矛</div>
 <div class="btn" id="btn-jump">跳</div>
+<div class="btn" id="btn-fire">火堆</div>
 <div class="btn" id="btn-collect">采集</div>
 <div class="btn" id="btn-fish">捕鱼</div>
+<div class="btn" id="btn-drink">喝水</div>
 <div class="btn" id="btn-eat">进食</div>
 <div class="btn" id="btn-deposit">存仓</div>
+<div class="btn" id="btn-sleep">睡觉</div>
 <div class="btn" id="btn-craft">制作</div>
 
 <script>
@@ -68,26 +78,33 @@ const TW=64,TH=32,ELEV=8,MAP_W=48,MAP_H=48;
 const VISION_NEAR=7,VISION_FAR=11;
 const WATER=0,GRASS=1,SAND=2,ROCK=3,TREE=4,HOME=5;
 const DAY_SPEED=100/600/60,HUNGER_RATE=100/4200/60;
+// 口渴: 下降快于饥饿, 水边喝水恢复; 口渴低时耐力恢复减半, 归零掉血
+const THIRST_RATE=100/3000/60,THIRST_REGEN_WATER=30;
+// 体温: 50舒适, 夜晚下降白天回升, 火堆旁快速回升; <30冻伤掉血, >80脱水口渴加倍
+const TEMP_RATE_NIGHT=2.5/60,TEMP_RATE_DAY=1.5/60,TEMP_FIRE_BOOST=8/60;
+const TEMP_COMFORT=50,TEMP_COLD=30,TEMP_HOT=80;
 const MOVE_SPEED=3.2,SNEAK_SPEED=1.4;
 const PLAYER_MAX_HP=100,PLAYER_MAX_STAM=100;
 const STAM_REGEN=7,STAM_MOVE_DRAIN=0.4;
 const TURN_SPEED=8;
-// 武器等级
+// 武器等级 (伤害类型: spear=刺pierce, axe=斩cut; 骨器以上矛可淬毒)
 const WEAPONS={
-  stone:{name:'石器',spearDmg:22,axeDmg:18,throwStam:22,meleeStam:8,color:'#c8a040'},
-  bone:{name:'骨器',spearDmg:35,axeDmg:28,throwStam:20,meleeStam:7,color:'#e8d8c0'},
-  metal:{name:'金属',spearDmg:55,axeDmg:45,throwStam:18,meleeStam:6,color:'#c0c0d8'},
+  stone:{name:'石器',spearDmg:22,axeDmg:18,throwStam:22,meleeStam:8,color:'#c8a040',spearType:'pierce',axeType:'cut'},
+  bone:{name:'骨器',spearDmg:35,axeDmg:28,throwStam:20,meleeStam:7,color:'#e8d8c0',spearType:'pierce',axeType:'cut',poison:true},
+  metal:{name:'金属',spearDmg:55,axeDmg:45,throwStam:18,meleeStam:6,color:'#c0c0d8',spearType:'pierce',axeType:'cut',poison:true},
 };
 const SPEAR_SPEED=9,SPEAR_RANGE=7;
 const MELEE_RANGE=1.8,MELEE_CD=0.6,MELEE_ARC=Math.PI/3;
 const HEAD_OFFSET=0.4,HEAD_RADIUS=0.35,BODY_RADIUS=0.7;
-// 部位系统: 5个部位, 各有倍率/效果/掉落(参考怪猎/方舟)
+// 部位系统: 5个部位, 各有基础倍率/对武器类型吸收率/部位HP/效果/掉落(参考怪猎肉质)
+// cutRate=斩(斧), pierceRate=刺(矛), bluntRate=钝(锤); 吸收率越高该武器打该部位越痛
+// partHp: 部位独立耐久, 归零触发"破坏"产生永久效果
 const PART_DEFS=[
-  {key:'head',     label:'头',   offF: 0.40, offP: 0.00, r:0.30, mult:3,   bleed:0.4, drop:{bone:2},         color:'#ff4040'},
-  {key:'heart',    label:'心',   offF: 0.05, offP: 0.00, r:0.22, mult:2,   bleed:0.7, drop:{meat:2},         color:'#ff8030'},
-  {key:'frontLeg', label:'前腿', offF: 0.20, offP: 0.20, r:0.20, mult:1.5, bleed:0.2, stun:1.5, drop:{hide:1}, color:'#ffd030'},
-  {key:'abdomen',  label:'腹',   offF:-0.15, offP: 0.00, r:0.30, mult:1,   bleed:0.25,drop:{meat:3},         color:'#80ff60'},
-  {key:'hindLeg',  label:'后腿', offF:-0.30, offP: 0.18, r:0.20, mult:1,   bleed:0.2, slow:4, drop:{hide:1},  color:'#60a0ff'},
+  {key:'head',     label:'头',   offF: 0.40, offP: 0.00, r:0.30, mult:3,   bleed:0.4, drop:{bone:2},         color:'#ff4040', cutRate:0.7, pierceRate:1.0, bluntRate:0.5, partHp:30, breakDrop:{bone:1}, breakEffect:'stunResist'},
+  {key:'heart',    label:'心',   offF: 0.05, offP: 0.00, r:0.22, mult:2,   bleed:0.7, drop:{meat:2},         color:'#ff8030', cutRate:0.8, pierceRate:1.0, bluntRate:0.3, partHp:50, breakDrop:{meat:2}, breakEffect:'bigBleed'},
+  {key:'frontLeg', label:'前腿', offF: 0.20, offP: 0.20, r:0.20, mult:1.5, bleed:0.2, stun:1.5, drop:{hide:1}, color:'#ffd030', cutRate:0.6, pierceRate:0.7, bluntRate:1.0, partHp:18, breakDrop:{hide:1}, breakEffect:'slow30'},
+  {key:'abdomen',  label:'腹',   offF:-0.15, offP: 0.00, r:0.30, mult:1,   bleed:0.25,drop:{meat:3},         color:'#80ff60', cutRate:1.0, pierceRate:0.9, bluntRate:0.6, partHp:25, breakDrop:{meat:2}, breakEffect:'bleedDouble'},
+  {key:'hindLeg',  label:'后腿', offF:-0.30, offP: 0.18, r:0.20, mult:1,   bleed:0.2, slow:4, drop:{hide:1},  color:'#60a0ff', cutRate:0.6, pierceRate:0.7, bluntRate:1.0, partHp:18, breakDrop:{hide:1}, breakEffect:'slow50'},
 ];
 // 动物
 const DEER_HP=55,DEER_SPEED=4.6,WOLF_HP=85,WOLF_SPEED=4.0;
@@ -109,6 +126,8 @@ const WOLF_MELEE_COUNTER=1.5;
 const CHOP_RANGE=1.6,WOOD_PER_HGT=1;
 // 陷阱
 const TRAP_SLOW_DUR=6,TRAP_SLOW_MULT=0.25;
+// 火堆: 木3+石2制作, 燃烧120秒, 3格内保暖+夜视+夜晚驱狼
+const FIRE_BURN_TIME=120,FIRE_RADIUS=3,FIRE_WOOD_EXTEND=30;
 // 潜行: 动物感知范围倍率
 const SNEAK_DETECT_MULT=0.35;
 
@@ -168,6 +187,13 @@ class Animal{
     this.trapSlowT=0;this.howlT=0;this.packRole='solo';
     this.stunT=0;this.partSlowT=0;this.lastHitPart=null;
     this.chaseT=0;
+    // 部位独立HP与破坏状态(参考怪猎部位破坏)
+    this.partHp={};this.partBroken={};
+    for(const d of PART_DEFS){this.partHp[d.key]=d.partHp;this.partBroken[d.key]=false;}
+    // 破坏后的永久效果
+    this.permSlow=0;this.bleedDouble=false;this.stunResist=false;
+    // 毒(持续掉血且期间不回血) / 睡眠(陷阱+麻醉可捕获)
+    this.poison=0;this.sleepT=0;
   }
   // 部位位置数组(头/心/前腿/腹/后腿), 随朝向旋转
   parts(){
@@ -175,15 +201,33 @@ class Animal{
     const px=-fy,py=fx;
     return PART_DEFS.map(d=>({...d,x:this.x+fx*d.offF+px*d.offP,y:this.y+fy*d.offF+py*d.offP}));
   }
-  // 部位命中: 按部位倍率/效果/掉落结算
-  takeDmgPart(d,part,game){
-    const dmg=d*part.mult;
+  // 部位命中: 按部位倍率×武器类型吸收率/效果/掉落结算, 并扣部位HP触发破坏
+  takeDmgPart(d,part,game,weaponType){
+    // 武器类型吸收率(参考怪猎肉质): 不同武器打不同部位效果不同
+    const rate=part[weaponType+'Rate']||0.8;
+    const dmg=d*part.mult*rate;
     this.hp=Math.max(0,this.hp-dmg);
-    this.bleed=Math.min(1,this.bleed+(part.bleed||0.25));
+    // 毒武器(骨器以上矛)附加毒
+    if(weaponType==='pierce'&&game&&game.player.getWeapon().poison)this.poison=Math.min(1,this.poison+0.3);
+    const bleedAmt=(part.bleed||0.25)*(this.bleedDouble?2:1);
+    this.bleed=Math.min(1,this.bleed+bleedAmt);
     this.hitFlash=0.3;
-    if(part.stun)this.stunT=part.stun;
+    if(part.stun&&!this.stunResist)this.stunT=part.stun;
     if(part.slow)this.partSlowT=part.slow;
     this.lastHitPart=part;
+    // 部位HP扣减与破坏
+    if(!this.partBroken[part.key]){
+      this.partHp[part.key]-=d;
+      if(this.partHp[part.key]<=0){
+        this.partBroken[part.key]=true;
+        // 破坏效果
+        if(part.breakEffect==='slow30')this.permSlow=Math.max(this.permSlow,0.3);
+        else if(part.breakEffect==='slow50')this.permSlow=Math.max(this.permSlow,0.5);
+        else if(part.breakEffect==='bleedDouble')this.bleedDouble=true;
+        else if(part.breakEffect==='stunResist')this.stunResist=true;
+        if(game)game.showMsg(`★${part.label}破坏!`);
+      }
+    }
     if(this.hp<=0){
       this.state='dead';this.deadTimer=30;
       // 狼死亡触发附近同伴逃跑(被打退一只, 其余溃散)
@@ -194,7 +238,7 @@ class Animal{
   curSpeed(){
     if(this.state==='graze')return this.baseSpeed*GRAZE_SPEED;
     if(this.state==='alert')return 0;
-    let s=this.baseSpeed*(1-this.bleed*0.6);
+    let s=this.baseSpeed*(1-this.bleed*0.6)*(1-this.permSlow);
     if(this.trapSlowT>0)s*=TRAP_SLOW_MULT;
     if(this.partSlowT>0)s*=0.5;
     return s;
@@ -214,6 +258,10 @@ class Animal{
     if(this.hitFlash>0)this.hitFlash-=dt;
     if(this.state==='dead'){this.deadTimer-=dt;return;}
     if(this.trapSlowT>0)this.trapSlowT-=dt;
+    // 毒: 持续掉血, 中毒期间不回血(流血继续)
+    if(this.poison>0){this.hp=Math.max(0,this.hp-this.poison*3*dt);this.poison=Math.max(0,this.poison-0.05*dt);if(this.hp<=0){this.state='dead';this.deadTimer=30;return;}}
+    // 睡眠: 完全静止(陷阱+麻醉可捕获), 期间其他状态继续结算
+    if(this.sleepT>0){this.sleepT-=dt;if(this.sleepT>0)return;}
     if(this.bleed>0){this.hp=Math.max(0,this.hp-this.bleed*BLEED_RATE*dt);this.bleed=Math.max(0,this.bleed-BLEED_HEAL*dt);if(this.hp<=0){this.state='dead';this.deadTimer=30;return;}}
     // 部位僵直: 不AI/移动, 但流血继续
     if(this.stunT>0){this.stunT-=dt;if(this.stunT>0)return;}
@@ -252,7 +300,10 @@ class Animal{
       }
       // 群体轮攻: packRole由game分配, 只有attacker才攻击
       // 蓄势满(WOLF_ATTACK_WINDUP秒)后才真正扑咬, 否则只是威慑跟随
-      if(this.state==='chase'&&distP<1.4&&this.chaseT>=WOLF_ATTACK_WINDUP){
+      // 夜晚怕火: 玩家在火堆范围内时狼不敢扑咬
+      const isNight=game.dayTime>=50;
+      const playerNearFire=isNight&&nearFire(game,p.x,p.y);
+      if(this.state==='chase'&&distP<1.4&&this.chaseT>=WOLF_ATTACK_WINDUP&&!playerNearFire){
         if(this.packRole==='attacker'||this.packRole==='solo'){
           this.state='attack';
           if(this.atkCd<=0){p.hp=Math.max(0,p.hp-WOLF_DMG);p.invuln=0.5;this.atkCd=WOLF_ATK_CD;game.showMsg('被狼咬伤! -'+WOLF_DMG);}
@@ -290,10 +341,14 @@ class Animal{
 
 // ========== 陷阱 ==========
 class Trap{constructor(x,y){this.x=x;this.y=y;this.triggered=false;this.triggerT=0;this.dead=false;}}
+// ========== 火堆 ==========
+class Fire{constructor(x,y){this.x=x;this.y=y;this.burnT=FIRE_BURN_TIME;this.dead=false;}}
+// 附近是否有燃烧的火堆(用于保暖/夜视/驱狼)
+function nearFire(g,x,y,radius=FIRE_RADIUS){for(const f of g.fires)if(f.burnT>0&&Math.hypot(f.x-x,f.y-y)<radius)return f;return null;}
 
 // ========== 矛 ==========
 class Spear{
-  constructor(x,y,dx,dy,dmg,tierColor){this.x=x;this.y=y;this.dx=dx;this.dy=dy;this.dmg=dmg;this.color=tierColor;this.life=SPEAR_RANGE;this.dead=false;this.hitSet=new Set();}
+  constructor(x,y,dx,dy,dmg,tierColor,weaponType){this.x=x;this.y=y;this.dx=dx;this.dy=dy;this.dmg=dmg;this.color=tierColor;this.type=weaponType;this.life=SPEAR_RANGE;this.dead=false;this.hitSet=new Set();}
   update(dt,game){
     const sp=SPEAR_SPEED*dt;this.x+=this.dx*sp;this.y+=this.dy*sp;this.life-=sp;
     if(this.life<=0||!game.island.walkable(this.x,this.y)){this.dead=true;return;}
@@ -307,7 +362,7 @@ class Spear{
         if(d<p.r&&d<bestD){best=p;bestD=d;}
       }
       if(best){
-        a.takeDmgPart(this.dmg,best,game);this.hitSet.add(a);this.dead=true;
+        a.takeDmgPart(this.dmg,best,game,this.type);this.hitSet.add(a);this.dead=true;
         game.showMsg(`${best.label}命中! x${best.mult} ${a.hp<=0?'击杀!':Math.floor(a.hp)+'/'+a.maxHp}`);return;
       }
       // 身体兜底(没瞄到任何部位但擦到身体)
@@ -323,9 +378,10 @@ class Spear{
 // ========== 玩家 ==========
 class Player{
   constructor(x,y){this.x=x;this.y=y;this.hp=PLAYER_MAX_HP;this.stamina=PLAYER_MAX_STAM;this.hunger=100;
+    this.thirst=100;this.temp=TEMP_COMFORT;
     this.inv={crystal:0,hide:0,wood:0,fish:0,meat:0,bone:0,ore:0};
     this.storage={crystal:0,hide:0,wood:0,fish:0,meat:0,bone:0,ore:0};
-    this.spears=3;this.axes=1;this.traps=2;this.weaponTier='stone';
+    this.spears=3;this.axes=1;this.traps=2;this.tranqs=0;this.weaponTier='stone';
     this.faceX=0;this.faceY=1;this.facing=0;this.invuln=0;this.meleeCd=0;this.sneak=false;}
   getHeight(island){return island.getElevAt(this.x,this.y);}
   getWeapon(){return WEAPONS[this.weaponTier];}
@@ -343,7 +399,7 @@ class Game{
     this.camX=this.player.x;this.camY=this.player.y;
     this.dayTime=0;this.moveDX=0;this.moveDY=0;
     this.jumpQueued=false;this.throwQueued=false;this.meleeQueued=false;this.meleeAnim=0;
-    this.animals=[];this.spears_flying=[];this.traps=[];this.howlEffects=[];
+    this.animals=[];this.spears_flying=[];this.traps=[];this.fires=[];this.howlEffects=[];
     this.spawnAnimals(8,6);
     this.msg='';this.msgTimer=0;this.lastTime=performance.now();
     this.setupInput();this.updateUI();
@@ -399,17 +455,21 @@ class Game{
     joy.addEventListener('touchend',end);joy.addEventListener('touchcancel',end);
     const bid=(id,fn)=>document.getElementById(id).addEventListener('touchstart',e=>{e.preventDefault();fn.call(this);});
     bid('btn-jump',()=>this.jumpQueued=true);
+    bid('btn-fire',()=>this.doFire());
     bid('btn-throw',()=>this.throwQueued=true);
     bid('btn-melee',()=>this.meleeQueued=true);
     bid('btn-trap',()=>this.doTrap());
+    bid('btn-tranq',()=>this.doTranq());
     bid('btn-sneak',()=>this.toggleSneak());
     bid('btn-fish',()=>this.doFish());
+    bid('btn-drink',()=>this.doDrink());
     bid('btn-collect',()=>this.doCollect());
     bid('btn-deposit',()=>this.doDeposit());
+    bid('btn-sleep',()=>this.doSleep());
     bid('btn-eat',()=>this.doEat());
     bid('btn-craft',()=>this.doCraft());
     const keys={};
-    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='k')this.meleeQueued=true;if(e.key==='x')this.doTrap();if(e.key==='Shift')this.toggleSneak();if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();});
+    window.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '){this.jumpQueued=true;e.preventDefault();}if(e.key==='j')this.throwQueued=true;if(e.key==='k')this.meleeQueued=true;if(e.key==='x')this.doTrap();if(e.key==='z')this.doTranq();if(e.key==='v')this.doFire();if(e.key==='b')this.doDrink();if(e.key==='n')this.doSleep();if(e.key==='Shift')this.toggleSneak();if(e.key==='e')this.doCollect();if(e.key==='q')this.doFish();if(e.key==='f')this.doDeposit();if(e.key==='r')this.doEat();if(e.key==='c')this.doCraft();});
     window.addEventListener('keyup',e=>keys[e.key]=false);
     this.getKeys=()=>{let dx=0,dy=0;if(keys['ArrowUp']||keys['w'])dy-=1;if(keys['ArrowDown']||keys['s'])dy+=1;if(keys['ArrowLeft']||keys['a'])dx-=1;if(keys['ArrowRight']||keys['d'])dx+=1;return{dx,dy};};
   }
@@ -420,7 +480,7 @@ class Game{
     if(p.stamina<w.throwStam){this.showMsg('耐力不足');return;}
     p.stamina-=w.throwStam;p.spears--;
     let dx=p.faceX,dy=p.faceY;const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
-    this.spears_flying.push(new Spear(p.x,p.y,dx,dy,w.spearDmg,w.color));
+    this.spears_flying.push(new Spear(p.x,p.y,dx,dy,w.spearDmg,w.color,w.spearType));
     this.showMsg('投出'+w.name+'矛!');this.updateUI();
   }
   doMelee(){
@@ -463,7 +523,7 @@ class Game{
         if(score<bestScore){bestScore=score;best=part;}
       }
       if(best){
-        a.takeDmgPart(w.axeDmg,best,this);hitAny=true;
+        a.takeDmgPart(w.axeDmg,best,this,w.axeType);hitAny=true;
         this.showMsg(`${best.label}劈击! x${best.mult} ${a.hp<=0?'击杀!':''}`);
       } else if(dist<=MELEE_RANGE){
         // 扇形内无部位, 但身体在范围内 -> 普通命中
@@ -485,6 +545,64 @@ class Game{
     p.stamina-=5;p.traps--;
     this.traps.push(new Trap(p.x,p.y));
     this.showMsg('放置陷阱!');this.updateUI();
+  }
+  // 麻醉球: 对虚弱(HP<25%)且在陷阱中的动物投掷, 累积睡眠, 满2发捕获(参考怪猎捕获)
+  doTranq(){
+    const p=this.player;
+    if(p.tranqs<=0){this.showMsg('没有麻醉球! 骨1+晶1制作');return;}
+    // 找最近的、在陷阱中且HP<25%的动物
+    let target=null,bestD=Infinity;
+    for(const a of this.animals){
+      if(a.state==='dead')continue;
+      const inTrap=this.traps.some(t=>!t.dead&&Math.hypot(t.x-a.x,t.y-a.y)<1.2);
+      if(!inTrap)continue;
+      if(a.hp/a.maxHp>0.25)continue;
+      const d=Math.hypot(a.x-p.x,a.y-p.y);
+      if(d<SPEAR_RANGE&&d<bestD){bestD=d;target=a;}
+    }
+    if(!target){this.showMsg('需陷阱中虚弱(HP<25%)的动物');return;}
+    p.tranqs--;
+    target.sleepT=Math.max(target.sleepT,5);
+    // 累积捕获进度: 麻醉2发且睡眠中=捕获成功
+    target.tranqHits=(target.tranqHits||0)+1;
+    this.showMsg(`麻醉命中! ${target.tranqHits}/2`);
+    if(target.tranqHits>=2){
+      // 捕获成功: 给稀有掉落, 不留尸体
+      const isWolf=target.type==='wolf';
+      p.inv.bone+=isWolf?3:2;
+      p.inv.hide+=isWolf?2:1;
+      p.inv.meat+=isWolf?1:3;
+      if(isWolf)p.inv.ore+=1; // 狼牙可换矿石(稀有)
+      this.showMsg(`★捕获${isWolf?'狼':'鹿'}成功! 稀有素材`);
+      const idx=this.animals.indexOf(target);
+      if(idx>=0)this.animals.splice(idx,1);
+    }
+    this.updateUI();
+  }
+  // 火堆: 木3+石2制作并放置, 燃烧120秒, 3格内保暖+夜视+驱狼
+  doFire(){
+    const p=this.player;
+    if(p.inv.wood<3){this.showMsg('需要木3+矿2');return;}
+    if(p.inv.ore<2){this.showMsg('需要木3+矿2');return;}
+    p.inv.wood-=3;p.inv.ore-=2;
+    this.fires.push(new Fire(p.x,p.y));
+    this.showMsg('点燃火堆! 保暖+夜视+驱狼');this.updateUI();
+  }
+  // 喝水: 沙滩旁有水处喝水恢复口渴
+  doDrink(){
+    if(!this.canFish()){this.showMsg('要在沙滩旁有水处喝水');return;}
+    this.player.thirst=Math.min(100,this.player.thirst+THIRST_REGEN_WATER);
+    this.showMsg('喝水 +'+THIRST_REGEN_WATER+'口渴');this.updateUI();
+  }
+  // 睡眠: 在营地HOME旁休息, 跳过夜晚到白天, 恢复HP/耐力(消耗饥饿)
+  doSleep(){
+    const p=this.player;
+    const ix=Math.round(p.x),iy=Math.round(p.y);
+    if(ix!==this.island.home.x||iy!==this.island.home.y){this.showMsg('回营地才能睡觉');return;}
+    if(this.dayTime<50){this.showMsg('白天不需要睡觉');return;}
+    if(p.hunger<20){this.showMsg('太饿了睡不着');return;}
+    p.hunger-=20;p.hp=Math.min(PLAYER_MAX_HP,p.hp+30);p.stamina=PLAYER_MAX_STAM;
+    this.dayTime=10;this.showMsg('睡了一觉, 跳到白天 +30血 +满耐力');this.updateUI();
   }
   doCollect(){
     for(let i=0;i<this.animals.length;i++){
@@ -527,7 +645,8 @@ class Game{
     else if(p.weaponTier==='bone'&&p.inv.ore>=3&&p.inv.wood>=2){p.inv.ore-=3;p.inv.wood-=2;p.weaponTier='metal';this.showMsg('武器升级: 金属器! 伤害大幅提升');}
     else if(p.inv.wood>=1&&p.inv.crystal>=1){p.inv.wood--;p.inv.crystal--;p.spears+=1;p.axes+=1;this.showMsg('制作 矛+1 斧+1');}
     else if(p.inv.wood>=2){p.inv.wood-=2;p.traps+=1;this.showMsg('制作 陷阱+1');}
-    else this.showMsg('需要: 木+晶(武器) / 木2(陷阱) / 骨3+木2(骨器) / 矿3+木2(金属)');
+    else if(p.inv.bone>=1&&p.inv.crystal>=1){p.inv.bone--;p.inv.crystal--;p.tranqs+=2;this.showMsg('制作 麻醉球+2');}
+    else this.showMsg('需要: 木+晶(武器) / 木2(陷阱) / 骨1+晶1(麻醉球) / 骨3+木2(骨器) / 矿3+木2(金属)');
     this.updateUI();
   }
   showMsg(t){this.msg=t;this.msgTimer=100;}
@@ -552,10 +671,12 @@ class Game{
     if(this.meleeQueued){this.doMelee();this.meleeQueued=false;}
     if(this.player.meleeCd>0)this.player.meleeCd-=dt;
     if(this.meleeAnim>0)this.meleeAnim-=dt;
-    // 耐力恢复
-    if(dx===0&&dy===0)this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*1.5*dt);
-    else this.player.stamina=Math.min(PLAYER_MAX_STAM,this.player.stamina+STAM_REGEN*0.3*dt);
-    if(this.player.invuln>0)this.player.invuln-=dt;
+    // 耐力恢复(饥饿/口渴低时恢复减半)
+    const p=this.player;
+    const stamMult=(p.hunger<30||p.thirst<20)?0.5:1;
+    if(dx===0&&dy===0)p.stamina=Math.min(PLAYER_MAX_STAM,p.stamina+STAM_REGEN*1.5*stamMult*dt);
+    else p.stamina=Math.min(PLAYER_MAX_STAM,p.stamina+STAM_REGEN*0.3*stamMult*dt);
+    if(p.invuln>0)p.invuln-=dt;
     // 动物
     for(const a of this.animals)a.update(dt,this);
     this.animals=this.animals.filter(a=>!(a.state==='dead'&&a.deadTimer<=0));
@@ -566,6 +687,9 @@ class Game{
     // 陷阱
     for(const t of this.traps){if(t.triggerT>0){t.triggerT-=dt;if(t.triggerT<=0)t.dead=true;}}
     this.traps=this.traps.filter(t=>!t.dead);
+    // 火堆燃烧
+    for(const f of this.fires){f.burnT-=dt;if(f.burnT<=0)f.dead=true;}
+    this.fires=this.fires.filter(f=>!f.dead);
     // 嗥叫特效
     for(const h of this.howlEffects)h.t-=dt;
     this.howlEffects=this.howlEffects.filter(h=>h.t>0);
@@ -592,8 +716,27 @@ class Game{
     this.camX+=(this.player.x-this.camX)*0.1;this.camY+=(this.player.y-this.camY)*0.1;
     this.updateMemory();
     this.dayTime=(this.dayTime+DAY_SPEED*60*dt)%100;
-    this.player.hunger=Math.max(0,this.player.hunger-HUNGER_RATE*60*dt);
-    if(this.player.hunger<=0)this.player.hp=Math.max(0,this.player.hp-2*dt);
+    const isNight=this.dayTime>=50;
+    p.hunger=Math.max(0,p.hunger-HUNGER_RATE*60*dt);
+    if(p.hunger<=0)p.hp=Math.max(0,p.hp-2*dt);
+    // 口渴: 体温过高时下降加倍
+    const thirstMult=p.temp>TEMP_HOT?2:1;
+    p.thirst=Math.max(0,p.thirst-THIRST_RATE*60*dt*thirstMult);
+    if(p.thirst<=0)p.hp=Math.max(0,p.hp-1.5*dt);
+    if(p.thirst<20)p.stamina=Math.min(p.stamina,PLAYER_MAX_STAM*0.5);
+    // 体温: 夜晚下降白天回升, 火堆旁快速回升
+    const fire=nearFire(this,p.x,p.y);
+    if(fire)p.temp=Math.min(100,p.temp+TEMP_FIRE_BOOST*60*dt);
+    else if(isNight)p.temp=Math.max(0,p.temp-TEMP_RATE_NIGHT*60*dt);
+    else p.temp=Math.min(100,p.temp+TEMP_RATE_DAY*60*dt);
+    if(p.temp<TEMP_COLD)p.hp=Math.max(0,p.hp-1*dt); // 冻伤掉血
+    // 夜晚狼群生成率加倍, 且火堆3格内不刷狼
+    const nightWolfBoost=isNight?0.3:0;
+    if(this.animals.length<10+Math.floor(nightWolfBoost*10)){
+      const s=this.island.spawnPoint(this.island.home,WOLF_CHASE*3);
+      // 火堆附近不刷狼
+      if(!nearFire(this,s.x,s.y))this.animals.push(new Animal(s.x,s.y,Math.random()<0.6-nightWolfBoost?'deer':'wolf'));
+    }
     if(this.msgTimer>0)this.msgTimer--;
     this.updateUI();
   }
@@ -629,6 +772,22 @@ class Game{
     ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(px-6,py-3);ctx.lineTo(px+6,py+3);ctx.moveTo(px+6,py-3);ctx.lineTo(px-6,py+3);ctx.stroke();
     ctx.strokeStyle='rgba(120,200,80,0.4)';ctx.beginPath();ctx.arc(px,py,8,0,Math.PI*2);ctx.stroke();
+  }
+  drawFire(f){
+    const vis=this.visible(Math.round(f.x),Math.round(f.y));if(vis!=='near'&&vis!=='far')return;
+    const e=this.island.getElevAt(f.x,f.y);const ps=this.toScreen(f.x,f.y,e);const center=this.toScreen(this.camX,this.camY);
+    const px=ps.sx+this.W/2-center.sx,py=ps.sy+this.H/2-center.sy;const ctx=this.ctx;
+    const t=performance.now()/200;
+    const flicker=Math.sin(t)*2;
+    // 光晕
+    const grad=ctx.createRadialGradient(px,py-4,2,px,py-4,FIRE_RADIUS*TW*0.5);
+    grad.addColorStop(0,'rgba(255,180,40,0.5)');grad.addColorStop(1,'rgba(255,100,20,0)');
+    ctx.fillStyle=grad;ctx.beginPath();ctx.arc(px,py-4,FIRE_RADIUS*TW*0.5,0,Math.PI*2);ctx.fill();
+    // 木柴
+    ctx.fillStyle='#5a3a1a';ctx.fillRect(px-6,py-2,12,4);
+    // 火焰
+    ctx.fillStyle='#ff8020';ctx.beginPath();ctx.moveTo(px-5,py-2);ctx.quadraticCurveTo(px,py-14-flicker,px+5,py-2);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#ffd040';ctx.beginPath();ctx.moveTo(px-3,py-2);ctx.quadraticCurveTo(px,py-9-flicker,px+3,py-2);ctx.closePath();ctx.fill();
   }
   drawHowlEffect(h){
     const vis=this.visible(Math.round(h.x),Math.round(h.y));if(vis!=='near'&&vis!=='far')return;
@@ -666,8 +825,22 @@ class Game{
     ctx.restore();
     if(vis==='near'){if(a.state==='graze'){ctx.fillStyle='rgba(180,220,160,0.6)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('吃草',px,py-13);}else if(a.state==='alert'){ctx.fillStyle='rgba(255,200,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('?!',px,py-13);}else if(a.state==='chase'||a.state==='attack'){ctx.fillStyle='rgba(255,60,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText(a.packRole==='flank'?'围':'!',px,py-13);}else if(a.state==='flee'){ctx.fillStyle='rgba(255,140,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('逃',px,py-13);}}
     if(a.hp<a.maxHp){const bw=16,bh=3,bx=px-bw/2,by=py-18;ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);const hpRatio=a.hp/a.maxHp;ctx.fillStyle=hpRatio>0.5?'#4ade4a':hpRatio>0.25?'#e0a028':'#d83838';ctx.fillRect(bx,by,bw*hpRatio,bh);}
-    if(a.bleed>0.1){ctx.fillStyle='rgba(200,40,40,0.7)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('流血',px,py-22);}
-    if(a.trapSlowT>0){ctx.fillStyle='rgba(120,200,80,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('陷阱!',px,py-26);}
+    // 状态指示: 流血/毒/睡眠/陷阱
+    let sy=py-22;
+    if(a.bleed>0.1){ctx.fillStyle='rgba(200,40,40,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('流血',px,sy);sy-=10;}
+    if(a.poison>0.1){ctx.fillStyle='rgba(120,220,60,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('毒',px,sy);sy-=10;}
+    if(a.sleepT>0){ctx.fillStyle='rgba(160,160,255,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('睡',px,sy);sy-=10;}
+    if(a.trapSlowT>0){ctx.fillStyle='rgba(120,200,80,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText('陷阱!',px,sy);}
+    // 部位破坏标记: 在已破坏部位画叉
+    for(const d of PART_DEFS){
+      if(a.partBroken[d.key]){
+        const hs=this.toScreen(a.x+Math.cos(a.facing)*d.offF-Math.sin(a.facing)*d.offP,
+                                a.y+Math.sin(a.facing)*d.offF+Math.cos(a.facing)*d.offP,e);
+        const hx=hs.sx+this.W/2-center.sx,hy=hs.sy+this.H/2-center.sy;
+        ctx.strokeStyle='#ff3030';ctx.lineWidth=1.2;
+        ctx.beginPath();ctx.moveTo(hx-3,hy-3);ctx.lineTo(hx+3,hy+3);ctx.moveTo(hx+3,hy-3);ctx.lineTo(hx-3,hy+3);ctx.stroke();
+      }
+    }
   }
   drawSpear(s){
     const e=this.island.getElevAt(s.x,s.y);const ps=this.toScreen(s.x,s.y,e);const center=this.toScreen(this.camX,this.camY);
@@ -686,6 +859,8 @@ class Game{
     for(let s=cx0+cy0;s<=cx1+cy1;s++){for(let x=Math.max(cx0,s-cy1);x<=Math.min(cx1,s-cy0);x++){const y=s-x;if(x>=0&&x<MAP_W&&y>=0&&y<MAP_H)this.drawTile(x,y);}}
     // 陷阱(地面层)
     for(const tp of this.traps)this.drawTrap(tp);
+    // 火堆(地面层, 有光效)
+    for(const f of this.fires)this.drawFire(f);
     // 动物/矛/玩家按y排序
     const drawables=[];
     for(const a of this.animals)drawables.push({y:a.y+a.x,fn:()=>this.drawAnimal(a)});
@@ -749,10 +924,16 @@ class Game{
     document.getElementById('stam-val').textContent=Math.floor(p.stamina);
     const hg=document.getElementById('hunger-fill');hg.style.width=p.hunger+'%';hg.className='fill hunger-fill'+(p.hunger<30?' low':'');
     document.getElementById('hunger-val').textContent=Math.floor(p.hunger);
+    document.getElementById('thirst-fill').style.width=p.thirst+'%';
+    document.getElementById('thirst-val').textContent=Math.floor(p.thirst);
+    const tf=document.getElementById('temp-fill');tf.style.width=p.temp+'%';
+    tf.style.background=p.temp<TEMP_COLD?'#4a90e0':p.temp>TEMP_HOT?'#e04040':'#e08040';
+    document.getElementById('temp-val').textContent=Math.floor(p.temp);
     document.getElementById('inv').textContent=`皮${p.inv.hide}肉${p.inv.meat}木${p.inv.wood}晶${p.inv.crystal}骨${p.inv.bone}矿${p.inv.ore}鱼${p.inv.fish}`;
     document.getElementById('spears').textContent=p.spears;
     document.getElementById('axes').textContent=p.axes;
     document.getElementById('traps').textContent=p.traps;
+    document.getElementById('tranqs').textContent=p.tranqs;
     document.getElementById('weapon-tier').textContent=p.getWeapon().name;
     const icon=document.getElementById('dn-icon'),label=document.getElementById('dn-label');
     if(this.dayTime<50){icon.textContent='☀';icon.style.left=(this.dayTime/50*50)+'%';label.textContent='白天';}
