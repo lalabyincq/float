@@ -41,6 +41,11 @@
   #btn-eat { right: 20px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
   #btn-craft { right: 20px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
   .btn.active { filter: brightness(1.5); box-shadow: 0 0 8px rgba(255,255,255,0.4); }
+  /* PC端: 精确指针(鼠标)时隐藏触屏按钮 */
+  @media (pointer: fine) {
+    #joystick, .btn { display: none !important; }
+    #desktop-hint { display: block !important; }
+  }
   /* === PC端: 径向菜单 === */
   #player-menu { position: fixed; z-index: 200; pointer-events: none; }
   .menu-btn { position: absolute; width: 54px; height: 54px; border-radius: 50%; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; pointer-events: auto; cursor: pointer; background: rgba(40,50,70,0.92); border: 2px solid rgba(120,180,255,0.6); color: #d0e8ff; transition: filter .1s, transform .1s; }
@@ -580,7 +585,7 @@ class Animal{
       if(this.state==='chase'&&distP<1.4&&this.chaseT>=WOLF_ATTACK_WINDUP&&!playerNearFire){
         if(this.packRole==='attacker'||this.packRole==='solo'){
           this.state='attack';
-          if(this.atkCd<=0){p.hp=Math.max(0,p.hp-WOLF_DMG);p.invuln=0.5;this.atkCd=WOLF_ATK_CD*(this.enraged?ENRAGE_ATK:1);game.showMsg((this.enraged?'【怒】':'')+'被狼咬伤! -'+WOLF_DMG);}
+          if(this.atkCd<=0){p.hp=Math.max(0,p.hp-WOLF_DMG);p.invuln=0.5;this.atkCd=WOLF_ATK_CD*(this.enraged?ENRAGE_ATK:1);game.showMsg((this.enraged?'【怒】':'')+'被狼咬伤! -'+WOLF_DMG);game.playSound('hurt');}
         } else {
           // 包围者: 绕到玩家侧后方
           const flankAng=Math.atan2(dyp,dxp)+(this.packId%2?1:-1)*1.5;
@@ -766,6 +771,8 @@ class Game{
     this.renderTerrain();
     this.msg='';this.msgTimer=0;this.lastTime=performance.now();
     this.setupInput();this.updateUI();
+    // === 音效系统(WebAudio合成, 无需外部文件) ===
+    this.audioCtx=null;this._audioReady=false;
     requestAnimationFrame(()=>this.loop());
   }
   spawnAnimals(deerN,wolfN){
@@ -869,8 +876,7 @@ class Game{
   resize(){this.W=window.innerWidth;this.H=window.innerHeight;this.canvas.width=this.W*devicePixelRatio;this.canvas.height=this.H*devicePixelRatio;this.canvas.style.width=this.W+'px';this.canvas.style.height=this.H+'px';this.ctx.scale(devicePixelRatio,devicePixelRatio);}
   toScreen(x,y,elev=0){return{sx:(x-y)*TW/2,sy:(x+y)*TH/2-elev*ELEV};}
   setupInput(){
-    const isTouch=window.matchMedia('(any-pointer:coarse)').matches&&!window.matchMedia('(any-pointer:fine)').matches;
-    if(!isTouch){document.getElementById('joystick').style.display='none';document.querySelectorAll('.btn').forEach(b=>b.style.display='none');document.getElementById('desktop-hint').style.display='block';}
+    const isTouch=false; // CSS @media (pointer:fine) 自动处理按钮显示/隐藏
     const joy=document.getElementById('joystick'),stick=document.getElementById('stick');
     let active=false,cx=0,cy=0;
     const set=(dx,dy)=>{const max=35;const len=Math.hypot(dx,dy);if(len>max){dx=dx/len*max;dy=dy/len*max;}stick.style.transform=`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px))`;this.moveDX=dx/max;this.moveDY=dy/max;};
@@ -1054,9 +1060,9 @@ class Game{
     p.stamina-=5;
     if(this.island.obsHeight[ty][tx]>0)this.island.obsHeight[ty][tx]--;
     const roll=Math.random();
-    if(roll<0.3){p.inv.ore++;this.showMsg('采矿! 矿石+1');}
-    else if(roll<0.5){p.inv.crystal++;this.showMsg('采矿! 水晶+1');}
-    else if(roll<0.7){p.inv.stone=(p.inv.stone||0)+1;this.showMsg('采矿! 石头+1');}
+    if(roll<0.3){p.inv.ore++;this.showMsg('采矿! 矿石+1');this.playSound('mine');}
+    else if(roll<0.5){p.inv.crystal++;this.showMsg('采矿! 水晶+1');this.playSound('mine');}
+    else if(roll<0.7){p.inv.stone=(p.inv.stone||0)+1;this.showMsg('采矿! 石头+1');this.playSound('mine');}
     else this.showMsg('采矿... 没挖到什么');
     if(this.island.obsHeight[ty][tx]<=0){
       this.island.tiles[ty][tx]=GRASS;
@@ -1103,12 +1109,12 @@ class Game{
     menu.id='player-menu';menu.style.left=px+'px';menu.style.top=py+'px';
     const p=this.player;
     const recipes=[
-      {label:'矛+斧',req:()=>p.inv.wood>=1&&p.inv.crystal>=1,fn:()=>{p.inv.wood--;p.inv.crystal--;p.spears+=1;p.axes+=1;this.showMsg('制作 矛+1 斧+1');this.updateUI();}},
-      {label:'陷阱',req:()=>p.inv.wood>=2,fn:()=>{p.inv.wood-=2;p.traps+=1;this.showMsg('制作 陷阱+1');this.updateUI();}},
-      {label:'麻醉球',req:()=>p.inv.bone>=1&&p.inv.crystal>=1,fn:()=>{p.inv.bone--;p.inv.crystal--;p.tranqs+=2;this.showMsg('制作 麻醉球+2');this.updateUI();}},
-      {label:'骨哨',req:()=>p.inv.bone>=2,fn:()=>{p.inv.bone-=2;p.whistles+=1;this.showMsg('制作 骨哨+1');this.updateUI();}},
-      {label:'骨器↑',req:()=>p.weaponTier==='stone'&&p.inv.bone>=3&&p.inv.wood>=2,fn:()=>{p.inv.bone-=3;p.inv.wood-=2;p.weaponTier='bone';this.showMsg('武器升级: 骨器!');this.updateUI();}},
-      {label:'金属↑',req:()=>p.weaponTier==='bone'&&p.inv.ore>=3&&p.inv.wood>=2,fn:()=>{p.inv.ore-=3;p.inv.wood-=2;p.weaponTier='metal';this.showMsg('武器升级: 金属器!');this.updateUI();}},
+      {label:'矛+斧',req:()=>p.inv.wood>=1&&p.inv.crystal>=1,fn:()=>{p.inv.wood--;p.inv.crystal--;p.spears+=1;p.axes+=1;this.showMsg('制作 矛+1 斧+1');this.playSound('craft');this.updateUI();}},
+      {label:'陷阱',req:()=>p.inv.wood>=2,fn:()=>{p.inv.wood-=2;p.traps+=1;this.showMsg('制作 陷阱+1');this.playSound('craft');this.updateUI();}},
+      {label:'麻醉球',req:()=>p.inv.bone>=1&&p.inv.crystal>=1,fn:()=>{p.inv.bone--;p.inv.crystal--;p.tranqs+=2;this.showMsg('制作 麻醉球+2');this.playSound('craft');this.updateUI();}},
+      {label:'骨哨',req:()=>p.inv.bone>=2,fn:()=>{p.inv.bone-=2;p.whistles+=1;this.showMsg('制作 骨哨+1');this.playSound('craft');this.updateUI();}},
+      {label:'骨器↑',req:()=>p.weaponTier==='stone'&&p.inv.bone>=3&&p.inv.wood>=2,fn:()=>{p.inv.bone-=3;p.inv.wood-=2;p.weaponTier='bone';this.showMsg('武器升级: 骨器!');this.playSound('levelup');this.updateUI();}},
+      {label:'金属↑',req:()=>p.weaponTier==='bone'&&p.inv.ore>=3&&p.inv.wood>=2,fn:()=>{p.inv.ore-=3;p.inv.wood-=2;p.weaponTier='metal';this.showMsg('武器升级: 金属器!');this.playSound('levelup');this.updateUI();}},
     ];
     const radius=55;
     let n=0;
@@ -1152,7 +1158,7 @@ class Game{
     p.stamina-=w.throwStam;p.spears--;
     let dx=p.faceX,dy=p.faceY;const len=Math.hypot(dx,dy)||1;dx/=len;dy/=len;
     this.spears_flying.push(new Spear(p.x,p.y,dx,dy,w.spearDmg,w.color,w.spearType));
-    this.showMsg('投出'+w.name+'矛!');this.updateUI();
+    this.showMsg('投出'+w.name+'矛!');this.playSound('throw');this.updateUI();
   }
   doMelee(){
     const p=this.player,w=p.getWeapon();
@@ -1198,7 +1204,7 @@ class Game{
         // === C1: 低温时近战伤害x0.8 ===
         const coldDmg=this.player.temp<COLD_TEMP?COLD_DMG_MULT:1;
         a.takeDmgPart(w.axeDmg*coldDmg,best,this,w.axeType);hitAny=true;
-        this.showMsg(`${best.label}劈击! x${best.mult} ${a.hp<=0?'击杀!':''}`);
+        this.showMsg(`${best.label}劈击! x${best.mult} ${a.hp<=0?'击杀!':''}`);this.playSound(a.hp<=0?'death':'hit');
       } else if(dist<=MELEE_RANGE){
         // 扇形内无部位, 但身体在范围内 -> 普通命中
         const ang=Math.atan2(dy,dx);let diff=ang-p.facing;
@@ -1301,13 +1307,13 @@ class Game{
     if(p.inv.ore<2){this.showMsg('需要木3+矿2');return;}
     p.inv.wood-=3;p.inv.ore-=2;
     this.fires.push(new Fire(p.x,p.y));
-    this.showMsg('点燃火堆! 保暖+夜视+驱狼');this.updateUI();
+    this.showMsg('点燃火堆! 保暖+夜视+驱狼');this.playSound('craft');this.updateUI();
   }
   // 喝水: 沙滩旁有水处喝水恢复口渴
   doDrink(){
     if(!this.canFish()){this.showMsg('要在沙滩旁有水处喝水');return;}
     this.player.thirst=Math.min(100,this.player.thirst+THIRST_REGEN_WATER);
-    this.showMsg('喝水 +'+THIRST_REGEN_WATER+'口渴');this.updateUI();
+    this.showMsg('喝水 +'+THIRST_REGEN_WATER+'口渴');this.playSound('drink');this.updateUI();
   }
   // 睡眠: 在营地HOME旁休息, 跳过夜晚到白天, 恢复HP/耐力(消耗饥饿)
   doSleep(){
@@ -1317,7 +1323,7 @@ class Game{
     if(this.dayTime<50){this.showMsg('白天不需要睡觉');return;}
     if(p.hunger<20){this.showMsg('太饿了睡不着');return;}
     p.hunger-=20;p.hp=Math.min(PLAYER_MAX_HP,p.hp+30);p.stamina=PLAYER_MAX_STAM;
-    this.dayTime=10;this.showMsg('睡了一觉, 跳到白天 +30血 +满耐力');this.updateUI();
+    this.dayTime=10;this.showMsg('睡了一觉, 跳到白天 +30血 +满耐力');this.playSound('sleep');this.updateUI();
   }
   // 骨哨: 吹哨吸引鹿(10格内走向玩家), 吓跑狼(8格内逃跑)
   doWhistle(){
@@ -1346,7 +1352,7 @@ class Game{
         }
       }
     }
-    this.showMsg(`吹${isWolfCall?'狼':'鹿'}笛! 吸引${lured}只${isWolfCall?'狼':'鹿'}`);this.updateUI();
+    this.showMsg(`吹${isWolfCall?'狼':'鹿'}笛! 吸引${lured}只${isWolfCall?'狼':'鹿'}`);this.playSound('whistle');this.updateUI();
   }
   toggleCall(){
     this.player.callType=this.player.callType==='deer'?'wolf':'deer';
@@ -1362,10 +1368,10 @@ class Game{
         if(part&&part.drop){
           for(const k in part.drop)this.player.inv[k]=(this.player.inv[k]||0)+part.drop[k];
           const summary=Object.entries(part.drop).map(([k,v])=>(names[k]||k)+'+'+v).join(' ');
-          this.showMsg(`采集 ${part.label}部: ${summary}`);
+          this.showMsg(`采集 ${part.label}部: ${summary}`);this.playSound('collect');
         } else {
           this.player.inv.meat+=1;this.player.inv.hide+=1;
-          this.showMsg('采集 皮+1 肉+1');
+          this.showMsg('采集 皮+1 肉+1');this.playSound('collect');
         }
         // 立即移除尸体, 不留残留
         this.animals.splice(i,1);
@@ -1376,13 +1382,13 @@ class Game{
     this.showMsg(r?`采集到 ${names[r]||r}`:'这里没有资源');this.updateUI();
   }
   canFish(){const p=this.player,is=this.island;const ix=Math.round(p.x),iy=Math.round(p.y);if(is.tiles[iy][ix]!==SAND)return false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=ix+dx,ny=iy+dy;if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&is.tiles[ny][nx]===WATER)return true;}return false;}
-  doFish(){if(!this.canFish()){this.showMsg('要在沙滩旁有水处捕鱼');return;}if(Math.random()<0.7){this.player.inv.fish++;this.showMsg('捕到鱼!');}else this.showMsg('没捕到...');this.updateUI();}
+  doFish(){if(!this.canFish()){this.showMsg('要在沙滩旁有水处捕鱼');return;}if(Math.random()<0.7){this.player.inv.fish++;this.showMsg('捕到鱼!');this.playSound('fish');}else this.showMsg('没捕到...');this.updateUI();}
   doDeposit(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.deposit();this.showMsg('已存入营地');}else this.showMsg('回营地存');this.updateUI();}
   doEat(){const p=this.player;
-    if(p.inv.meat>0){p.inv.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('吃兽肉 +40饱 +8血');}
-    else if(p.storage.meat>0){p.storage.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('营地吃肉 +40饱 +8血');}
-    else if(p.inv.fish>0){p.inv.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('吃鱼 +45');}
-    else if(p.storage.fish>0){p.storage.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('营地吃鱼 +45');}
+    if(p.inv.meat>0){p.inv.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('吃兽肉 +40饱 +8血');this.playSound('eat');}
+    else if(p.storage.meat>0){p.storage.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('营地吃肉 +40饱 +8血');this.playSound('eat');}
+    else if(p.inv.fish>0){p.inv.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('吃鱼 +45');this.playSound('eat');}
+    else if(p.storage.fish>0){p.storage.fish--;p.hunger=Math.min(100,p.hunger+45);this.showMsg('营地吃鱼 +45');this.playSound('eat');}
     else this.showMsg('没食物!');
     this.updateUI();
   }
@@ -1396,9 +1402,50 @@ class Game{
     else if(p.inv.bone>=1&&p.inv.crystal>=1){p.inv.bone--;p.inv.crystal--;p.tranqs+=2;this.showMsg('制作 麻醉球+2');}
     else if(p.inv.bone>=2){p.inv.bone-=2;p.whistles+=1;this.showMsg('制作 骨哨+1');}
     else this.showMsg('需要: 木+晶(武器) / 木2(陷阱) / 骨1+晶1(麻醉球) / 骨2(骨哨) / 骨3+木2(骨器) / 矿3+木2(金属)');
-    this.updateUI();
+    this.playSound('craft');this.updateUI();
   }
   showMsg(t){this.msg=t;this.msgTimer=100;}
+  // === 音效系统: WebAudio合成 ===
+  playSound(type){
+    if(!this._audioReady){this.audioCtx=new(AudioContext||webkitAudioContext)();this._audioReady=true;}
+    const ctx=this.audioCtx;if(!ctx)return;
+    const now=ctx.currentTime;
+    const tone=(freq,dur,vol,type='sine',delay=0)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type=type;o.frequency.value=freq;
+      g.gain.setValueAtTime(0,now+delay);
+      g.gain.linearRampToValueAtTime(vol,now+delay+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,now+delay+dur);
+      o.start(now+delay);o.stop(now+delay+dur);
+    };
+    const noise=(dur,vol,filterFreq=1000,delay=0)=>{
+      const buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+      const s=ctx.createBufferSource();s.buffer=buf;
+      const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=filterFreq;
+      const g=ctx.createGain();g.gain.value=vol;
+      s.connect(f);f.connect(g);g.connect(ctx.destination);
+      s.start(now+delay);
+    };
+    switch(type){
+      case'hit':tone(180,0.12,0.3,'square');noise(0.08,0.15,800);break;          // 击中
+      case'collect':tone(440,0.1,0.2,'sine');tone(660,0.1,0.15,'sine',0.08);break; // 采集成功
+      case'hurt':tone(120,0.2,0.35,'sawtooth');noise(0.1,0.2,500);break;          // 被攻击
+      case'eat':tone(300,0.08,0.15,'sine');tone(400,0.08,0.12,'sine',0.06);tone(500,0.1,0.1,'sine',0.14);break; // 进食
+      case'drink':tone(200,0.15,0.12,'sine');tone(250,0.1,0.1,'sine',0.08);break;  // 喝水
+      case'craft':tone(150,0.1,0.2,'square');noise(0.15,0.1,1200);tone(200,0.08,0.15,'square',0.1);break; // 制作
+      case'throw':tone(800,0.06,0.15,'sine');tone(400,0.08,0.1,'sine',0.06);break; // 投矛
+      case'sleep':tone(200,0.3,0.15,'sine');tone(150,0.4,0.12,'sine',0.2);break;    // 睡觉
+      case'whistle':tone(1200,0.15,0.2,'sine');tone(1500,0.1,0.15,'sine',0.08);break; // 骨哨
+      case'fish':tone(300,0.1,0.15,'sine');noise(0.2,0.08,600,0.1);break;           // 捕鱼
+      case'mine':tone(100,0.08,0.25,'square');noise(0.06,0.15,2000);break;          // 采矿
+      case'death':tone(150,0.3,0.3,'sawtooth');tone(80,0.5,0.2,'sine',0.15);break;  // 动物死亡
+      case'tame':tone(523,0.1,0.2,'sine');tone(659,0.1,0.2,'sine',0.1);tone(784,0.2,0.2,'sine',0.2);break; // 驯服成功
+      case'levelup':tone(523,0.08,0.2,'square');tone(659,0.08,0.2,'square',0.08);tone(784,0.12,0.2,'square',0.16);break; // 升级
+    }
+  }
   visible(x,y){
     // === E1: 天气影响视野 ===
     let near=VISION_NEAR,far=VISION_FAR;
@@ -1593,7 +1640,7 @@ class Game{
   // 地形类型→过渡色基准(用于边缘融合)
   _blendColor(nt){
     switch(nt){
-      case WATER:return '#2a5a7a';
+      case WATER:return '#2a6aaa';
       case GRASS:return '#4a8a3a';
       case SAND:return '#c8b478';
       case ROCK:return '#8a7e72';
@@ -1622,7 +1669,7 @@ class Game{
       case WATER:{
         const wd=is.waterDepth?is.waterDepth[y][x]:1;
         const depthT=Math.min(1,wd/2.5);
-        color=lerpColor(lerpColor('#3a7aaa','#1a4a6a',depthT),'#0e2a4a',depthT*0.5);
+        color=lerpColor(lerpColor('#3a8ada','#1a5aaa',depthT),'#0a3a8a',depthT*0.5);
         color=lerpColor(color,lerpColor(color,'#0a1a3a',0.3),noise*0.3+0.5);
         break;
       }
@@ -2081,7 +2128,7 @@ class Game{
         if(!this.island.memory[y][x])continue;
         const t=this.island.tiles[y][x];
         let c;
-        switch(t){case WATER:c='#1a3a5a';break;case GRASS:c='#2a5e32';break;case SAND:c='#a89060';break;case ROCK:c='#6a5e52';break;case TREE:c='#1e4a28';break;case HOME:c='#3c8246';break;default:c='#222';}
+        switch(t){case WATER:c='#1a4a8a';break;case GRASS:c='#2a5e32';break;case SAND:c='#a89060';break;case ROCK:c='#6a5e52';break;case TREE:c='#1e4a28';break;case HOME:c='#3c8246';break;default:c='#222';}
         ctx.fillStyle=c;ctx.fillRect(mmX+x*tileW,mmY+y*tileH,Math.ceil(tileW),Math.ceil(tileH));
       }
     }
