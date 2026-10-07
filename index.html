@@ -317,32 +317,21 @@ class Island{
   }
   getElevAt(x,y){if(x<0||x>=MAP_W-1||y<0||y>=MAP_H-1)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;const e00=this.elev[y0][x0],e10=this.elev[y0][x0+1],e01=this.elev[y0+1][x0],e11=this.elev[y0+1][x0+1];return e00*(1-fx)*(1-fy)+e10*fx*(1-fy)+e01*(1-fx)*fy+e11*fx*fy;}
   walkable(x,y){
-    // 玩家移动检查: 当前位置周围4角格中至少1格可走即允许
-    // (避免玩家走在树旁时因round取整到树格而被完全卡住无法移动)
-    const fx=Math.floor(x),fy=Math.floor(y);
-    if(fx<0||fx>=MAP_W||fy<0||fy>=MAP_H)return false;
-    // 检查目标点所在的4个格子角, 至少1格可走
-    const t00=this.tiles[fy][fx];
-    if(t00!==WATER&&t00!==TREE&&!(t00===ROCK&&this.obsHeight[fy][fx]>1))return true;
-    if(fy+1<MAP_H){
-      const t=this.tiles[fy+1][fx];
-      if(t!==WATER&&t!==TREE&&!(t===ROCK&&this.obsHeight[fy+1][fx]>1))return true;
-    }
-    if(fx+1<MAP_W){
-      const t=this.tiles[fy][fx+1];
-      if(t!==WATER&&t!==TREE&&!(t===ROCK&&this.obsHeight[fy][fx+1]>1))return true;
-    }
-    if(fx+1<MAP_W&&fy+1<MAP_H){
-      const t=this.tiles[fy+1][fx+1];
-      if(t!==WATER&&t!==TREE&&!(t===ROCK&&this.obsHeight[fy+1][fx+1]>1))return true;
-    }
-    return false;
+    // 玩家位置所在的格(floor取整)必须可走, 不允许穿树/穿水
+    // 用floor而非round: 路径点(格中心x.5,y.5)属于该格本身, 玩家走到格中心时仍在该格内
+    const ix=Math.floor(x),iy=Math.floor(y);
+    if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;
+    const t=this.tiles[iy][ix];
+    if(t===WATER||t===TREE)return false;
+    if(t===ROCK)return this.obsHeight[iy][ix]<=1;
+    return true;
   }
   // 整数格是否可走(用于寻路), 含高度差检查
   tileWalkable(ix,iy){if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
   // === A* 寻路: 返回路径点数组[{x,y}...], 起点不在路径中, 终点为最后一个点 ===
   findPath(sx,sy,tx,ty){
-    const ix0=Math.round(sx),iy0=Math.round(sy),ix1=Math.round(tx),iy1=Math.round(ty);
+    // 用floor与walkable一致, 确保玩家位置所在的格判定与寻路一致
+    const ix0=Math.floor(sx),iy0=Math.floor(sy),ix1=Math.floor(tx),iy1=Math.floor(ty);
     // 终点不可走(树/水/矿石/高石): 找最近的可走邻居作为终点
     let ex=ix1,ey=iy1;
     if(!this.tileWalkable(ex,ey)){
