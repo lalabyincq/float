@@ -842,6 +842,7 @@ class Game{
     this.jumpQueued=false;this.throwQueued=false;this.meleeQueued=false;this.meleeAnim=0;
     this.moveTarget=null; // 双击移动目标点
     this.animals=[];this.spears_flying=[];this.traps=[];this.fires=[];this.tracks=[];this.howlEffects=[];this.pickups=[];
+    this.fishedSpots={}; // 捕鱼冷却: "x,y"->上次捕鱼时间戳, 同一地点25s内不能再捕到鱼
     // === B: 气味云 + 粪便 ===
     this.scents=[];this.droppings=[];this.scentT=0;
     // === B5: 狩猎压力图 ===
@@ -858,6 +859,11 @@ class Game{
     this.terrainCanvas.width=(MAP_W+MAP_H)*TW/2+200;
     this.terrainCanvas.height=(MAP_W+MAP_H)*TH/2+200;
     this.terrainCtx=this.terrainCanvas.getContext('2d');
+    // === 地形贴图pattern(在terrainCtx上创建, drawTile填充时用) ===
+    this.pat={};
+    if(TEX.grass)this.pat.grass=this.terrainCtx.createPattern(TEX.grass,'repeat');
+    if(TEX.sand)this.pat.sand=this.terrainCtx.createPattern(TEX.sand,'repeat');
+    if(TEX.rock)this.pat.rock=this.terrainCtx.createPattern(TEX.rock,'repeat');
     this.spawnAnimals(8,6);
     this.renderTerrain();
     this.msg='';this.msgTimer=0;this.lastTime=performance.now();
@@ -1107,9 +1113,12 @@ class Game{
     if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H){
       const t=this.island.tiles[ty][tx];
       if(t===WATER){
-        // 走到水边捕鱼
-        this.moveTarget={x:tx,y:ty,action:'fish',range:2.5};
-        this.showMsg('走向水边...');
+        // 走到该水域旁最近的岸边(可走且邻水)再捕鱼, 而不是走向水本身
+        const spot=this._findFishSpot(tx,ty);
+        if(spot){
+          this.moveTarget={x:spot.x,y:spot.y,action:'fish',range:0.6};
+          this.showMsg('走向水边...');
+        } else this.showMsg('这附近没有合适的岸边');
         return;
       }
       if(t===ROCK){
@@ -1122,6 +1131,12 @@ class Game{
         // 走到树旁砍树(用整数格坐标让A*自动找可走邻居, range放宽到1.6)
         this.moveTarget={x:tx,y:ty,action:'chop',range:1.6,tx,ty};
         this.showMsg('走向树木...');
+        return;
+      }
+      if(t===HOME){
+        // 走到营地存仓(range放宽到1.4, 站到营地旁即可存)
+        this.moveTarget={x:tx,y:ty,action:'deposit',range:1.4};
+        this.showMsg('走向营地存仓...');
         return;
       }
     }
@@ -1500,9 +1515,43 @@ class Game{
     const r=this.player.collect(this.island);const names={crystal:'水晶',hide:'兽皮',wood:'木材',ore:'矿石'};
     this.showMsg(r?`采集到 ${names[r]||r}`:'这里没有资源');this.updateUI();
   }
-  canFish(){const p=this.player,is=this.island;const ix=Math.round(p.x),iy=Math.round(p.y);if(is.tiles[iy][ix]!==SAND)return false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=ix+dx,ny=iy+dy;if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&is.tiles[ny][nx]===WATER)return true;}return false;}
-  doFish(){if(!this.canFish()){this.showMsg('要在沙滩旁有水处捕鱼');return;}if(Math.random()<0.7){this.player.inv.fish++;this.showMsg('捕到鱼!');this.playSound('fish');}else this.showMsg('没捕到...');this.updateUI();}
-  doDeposit(){const ix=Math.round(this.player.x),iy=Math.round(this.player.y);if(ix===this.island.home.x&&iy===this.island.home.y){this.player.deposit();this.showMsg('已存入营地');}else this.showMsg('回营地存');this.updateUI();}
+  canFish(){const p=this.player,is=this.island;const ix=Math.round(p.x),iy=Math.round(p.y);if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=is.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK&&is.obsHeight[iy][ix]>1)return false;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=ix+dx,ny=iy+dy;if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&is.tiles[ny][nx]===WATER)return true;}return false;}
+  // 在点击水域周围找最近的"可走且邻水"岸边格, 优先离玩家最近(让玩家走最短路)
+  _findFishSpot(wx,wy){
+    const is=this.island;const p=this.player;let best=null,bestScore=Infinity;
+    for(let r=1;r<=8;r++){
+      for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+        if(Math.abs(dx)!==r&&Math.abs(dy)!==r)continue; // 只扫外环
+        const x=wx+dx,y=wy+dy;
+        if(x<1||x>=MAP_W-1||y<1||y>=MAP_H-1)continue;
+        const t=is.tiles[y][x];
+        if(t===WATER||t===TREE)continue;
+        if(t===ROCK&&is.obsHeight[y][x]>1)continue;
+        // 必须邻水
+        let adjWater=false;
+        for(const[adx,ady]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+adx,ny=y+ady;if(nx>=0&&nx<MAP_W&&ny>=0&&ny<MAP_H&&is.tiles[ny][nx]===WATER){adjWater=true;break;}}
+        if(!adjWater)continue;
+        const pd=Math.hypot(x-p.x,y-p.y);
+        const score=pd+r*0.1; // 略偏向离点击点近的(减少r), 但主要看离玩家近
+        if(score<bestScore){bestScore=score;best={x,y};}
+      }
+      if(best&&r>=2)break; // 找到即可, 不必扫太远
+    }
+    return best;
+  }
+  doFish(){
+    if(!this.canFish()){this.showMsg('要在水边才能捕鱼');return;}
+    const ix=Math.round(this.player.x),iy=Math.round(this.player.y);
+    const key=`${ix},${iy}`;
+    const now=Date.now();
+    const FISH_COOLDOWN=25000; // 同一地点25s内鱼被惊走, 不能再捕到
+    const last=this.fishedSpots[key]||0;
+    const onCd=now-last<FISH_COOLDOWN;
+    if(onCd){this.showMsg('这里的鱼被惊走了，换一处试试...');this.updateUI();return;}
+    if(Math.random()<0.7){this.player.inv.fish++;this.fishedSpots[key]=now;this.showMsg('捕到鱼!');this.playSound('fish');}
+    else this.showMsg('没捕到...');this.updateUI();
+  }
+  doDeposit(){const d=Math.hypot(this.player.x-this.island.home.x,this.player.y-this.island.home.y);if(d<=1.6){this.player.deposit();this.showMsg('已存入营地');this.playSound('deposit');}else this.showMsg('回营地存');this.updateUI();}
   doEat(){const p=this.player;
     if(p.inv.meat>0){p.inv.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('吃兽肉 +40饱 +8血');this.playSound('eat');}
     else if(p.storage.meat>0){p.storage.meat--;p.hunger=Math.min(100,p.hunger+40);p.hp=Math.min(PLAYER_MAX_HP,p.hp+8);this.showMsg('营地吃肉 +40饱 +8血');this.playSound('eat');}
@@ -1563,6 +1612,7 @@ class Game{
       case'death':tone(150,0.3,0.3,'sawtooth');tone(80,0.5,0.2,'sine',0.15);break;  // 动物死亡
       case'tame':tone(523,0.1,0.2,'sine');tone(659,0.1,0.2,'sine',0.1);tone(784,0.2,0.2,'sine',0.2);break; // 驯服成功
       case'levelup':tone(523,0.08,0.2,'square');tone(659,0.08,0.2,'square',0.08);tone(784,0.12,0.2,'square',0.16);break; // 升级
+      case'deposit':tone(523,0.1,0.2,'sine');tone(659,0.1,0.15,'sine',0.08);tone(784,0.15,0.15,'sine',0.16);break; // 存仓
     }
   }
   visible(x,y){
@@ -1626,6 +1676,7 @@ class Game{
         else if(mt.action==='fish')this.doFish();
         else if(mt.action==='mine')this.mineRock(mt.tx,mt.ty);
         else if(mt.action==='chop')this._chopTreeAt(mt.tx,mt.ty);
+        else if(mt.action==='deposit')this.doDeposit();
         else if(mt.action==='melee'&&mt.target&&mt.target.state!=='dead'){
           // 转向目标并近战
           const t=mt.target;
@@ -1865,7 +1916,16 @@ class Game{
     const fNE={x:cx+(pNE.x-cx)*ex,y:cy+(pNE.y-cy)*ex};
     const fSE={x:cx+(pSE.x-cx)*ex,y:cy+(pSE.y-cy)*ex};
     const fSW={x:cx+(pSW.x-cx)*ex,y:cy+(pSW.y-cy)*ex};
-    ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();
+    // 填充: 有贴图pattern用贴图(草/沙/岩), 否则用计算出的纯色; 树/营地下用草地贴图
+    let pat=null;
+    if(t===GRASS)pat=this.pat.grass;
+    else if(t===SAND)pat=this.pat.sand;
+    else if(t===ROCK)pat=this.pat.rock;
+    else if(t===TREE||t===HOME)pat=this.pat.grass;
+    ctx.fillStyle=pat||color;
+    ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();
+    // 贴图模式下叠一层淡色阴影按高程给立体感(无贴图时已有color变化, 跳过)
+    if(pat&&t!==WATER){ctx.fillStyle=`rgba(20,30,10,${Math.min(0.25,avgE*0.04)})`;ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();}
     // === 子格子色斑: 基于世界坐标连续噪声, 同类型区域融合看不出格子 ===
     if(vis==='near'||vis==='far'){
       const f=0.28;
@@ -2062,8 +2122,43 @@ class Game{
         }
       }
     }
-    if(vis==='near'&&is.resources[`${x},${y}`]){const r=is.resources[`${x},${y}`];ctx.fillStyle=r==='ore'?'#e0c0e0':'#78c8ff';ctx.beginPath();ctx.arc(cx,cy,6,0,Math.PI*2);ctx.fill();}
-    else if(vis==='far'&&is.resources[`${x},${y}`]){ctx.fillStyle='#3c6478';ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();}
+    // === 资源点: 矿石=矿山矿脉(岩石基座+矿晶), 水晶=晶簇, 皮/木=小堆 ===
+    if(vis==='near'&&is.resources[`${x},${y}`]){
+      const r=is.resources[`${x},${y}`];
+      if(r==='ore'){
+        // 矿山形象: 地面阴影 + 岩石矿脉基座 + 紫色矿晶簇(不再悬浮)
+        ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(cx+3,cy+4,11,5,0,0,Math.PI*2);ctx.fill();
+        // 岩石基座(分层渐深)
+        ctx.fillStyle='#3a342e';ctx.beginPath();ctx.ellipse(cx,cy+2,10,6,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#5a5048';ctx.beginPath();ctx.ellipse(cx,cy,9,5,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#6a5e52';ctx.beginPath();ctx.ellipse(cx-1,cy-1,7,4,0,0,Math.PI*2);ctx.fill();
+        // 矿晶簇(紫色尖晶, 从岩石中突出)
+        const vein='#c860d8';const veinLt='#e8a8f0';
+        const pts=[[ -3,1,4],[2,0,5],[ -1,-2,3.5],[4,-1,3]];
+        for(const[px,py,s]of pts){
+          ctx.fillStyle=vein;ctx.beginPath();ctx.moveTo(cx+px,py+cy+s);ctx.lineTo(cx+px-s*0.6,py+cy);ctx.lineTo(cx+px+s*0.6,py+cy);ctx.closePath();ctx.fill();
+          ctx.fillStyle=veinLt;ctx.beginPath();ctx.moveTo(cx+px,py+cy+s*0.7);ctx.lineTo(cx+px-s*0.3,py+cy);ctx.lineTo(cx+px+s*0.3,py+cy);ctx.closePath();ctx.fill();
+        }
+        // 高光闪点
+        ctx.fillStyle='rgba(255,255,255,0.7)';ctx.beginPath();ctx.arc(cx+2,cy-2,1,0,Math.PI*2);ctx.fill();
+      } else if(r==='crystal'){
+        // 水晶簇: 蓝白色尖晶从地面突出
+        ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(cx+2,cy+3,8,4,0,0,Math.PI*2);ctx.fill();
+        const pts=[[ -2,2,5],[2,0,6],[0,-1,4]];
+        for(const[px,py,s]of pts){
+          ctx.fillStyle='#3a8ad8';ctx.beginPath();ctx.moveTo(cx+px,py+cy+s);ctx.lineTo(cx+px-s*0.5,py+cy);ctx.lineTo(cx+px+s*0.5,py+cy);ctx.closePath();ctx.fill();
+          ctx.fillStyle='#a8d8ff';ctx.beginPath();ctx.moveTo(cx+px,py+cy+s*0.7);ctx.lineTo(cx+px-s*0.25,py+cy);ctx.lineTo(cx+px+s*0.25,py+cy);ctx.closePath();ctx.fill();
+        }
+        ctx.fillStyle='rgba(255,255,255,0.8)';ctx.beginPath();ctx.arc(cx+1,cy-1,1.2,0,Math.PI*2);ctx.fill();
+      } else {
+        // 皮/木: 小堆
+        const col=r==='hide'?'#8a5a3a':'#6a4a28';
+        ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(cx+2,cy+2,7,3,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(cx,cy,6,3,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=r==='hide'?'#a87a5a':'#8a6a48';ctx.beginPath();ctx.ellipse(cx-1,cy-1,4,2,0,0,Math.PI*2);ctx.fill();
+      }
+    }
+    else if(vis==='far'&&is.resources[`${x},${y}`]){const r=is.resources[`${x},${y}`];ctx.fillStyle=r==='ore'?'#a040b0':r==='crystal'?'#5aa8d8':'#7a5a3a';ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();}
   }
   drawTrap(tp){
     const vis=this.visible(Math.round(tp.x),Math.round(tp.y));if(vis!=='near'&&vis!=='far')return;
@@ -2263,14 +2358,40 @@ class Game{
     // 挥砍动画
     if(this.meleeAnim>0){const prog=1-this.meleeAnim/0.25;ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);const swingAng=-MELEE_ARC+prog*MELEE_ARC*2;const r=MELEE_RANGE*TW*0.5;ctx.strokeStyle=`rgba(255,200,120,${1-prog})`;ctx.lineWidth=3;ctx.beginPath();ctx.arc(0,0,r*0.6,swingAng-0.3,swingAng+0.3);ctx.stroke();const ax=Math.cos(swingAng)*r*0.7,ay=Math.sin(swingAng)*r*0.7;ctx.fillStyle=w.color;ctx.beginPath();ctx.arc(ax,ay,4,0,Math.PI*2);ctx.fill();ctx.restore();}
     const invuln=this.player.invuln>0&&Math.floor(this.player.invuln*10)%2;
-    // === B4: 卧倒半透明, 蹲伏微透明 ===
+    // === 主角形象: 俯视人物(头/躯干/四肢摆动/背包), 按facing旋转给朝向, 移动时四肢走动周期 ===
+    const moved=Math.hypot(this.player.x-(this._pLX??this.player.x),this.player.y-(this._pLY??this.player.y));
+    this._pLX=this.player.x;this._pLY=this.player.y;
+    if(moved>0.0005)this.walkPhase=(this.walkPhase||0)+moved*10;
+    const moving=moved>0.0005;
+    const wp=this.walkPhase||0;
+    const legSwing=moving?Math.sin(wp)*3:0;
+    const armSwing=moving?Math.sin(wp+Math.PI)*2.5:0;
+    const bob=moving?Math.abs(Math.sin(wp))*1.2:0;
     const postAlpha={walk:1,crouch:0.8,prone:0.55}[this.player.posture]||1;
+    const pScale={walk:1,crouch:0.85,prone:0.65}[this.player.posture]||1;
     ctx.globalAlpha=postAlpha;
-    ctx.save();ctx.translate(ppx,ppy);ctx.rotate(facingScreen);
-    ctx.fillStyle=invuln?'#fff':w.color;ctx.beginPath();ctx.moveTo(13,0);ctx.lineTo(6,-5);ctx.lineTo(6,5);ctx.closePath();ctx.fill();
+    ctx.save();ctx.translate(ppx,ppy-bob);ctx.rotate(facingScreen);ctx.scale(pScale,pScale);
+    // 腿(后画先, 两条粗线从髋部向后伸, 走动时左右交替前后摆)
+    ctx.strokeStyle=invuln?'#fff':'#3a2a1a';ctx.lineWidth=2.5;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(0,-2.5);ctx.lineTo(-7+legSwing*0.3,-2.5-legSwing);ctx.moveTo(0,2.5);ctx.lineTo(-7+legSwing*0.3,2.5+legSwing);ctx.stroke();
+    // 鞋
+    ctx.fillStyle=invuln?'#fff':'#2a1a10';ctx.beginPath();ctx.arc(-7+legSwing*0.3,-2.5-legSwing,1.7,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(-7+legSwing*0.3,2.5+legSwing,1.7,0,Math.PI*2);ctx.fill();
+    // 躯干(服装色, 椭圆)
+    ctx.fillStyle=invuln?'#fff':'#3a6a3a';ctx.beginPath();ctx.ellipse(0,0,4.5,5,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(-1.5,0,3,4.5,0,0,Math.PI*2);ctx.fill();
+    // 背包(背部, -x方向)
+    ctx.fillStyle=invuln?'#fff':'#6a4a28';ctx.beginPath();ctx.ellipse(-3,0,2.6,3.6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(-4.5,-1.5,2,3);
+    // 手臂(两侧, 走动时前后摆, 与腿相反)
+    ctx.strokeStyle=invuln?'#fff':'#5a8a4a';ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.moveTo(0,-4.5);ctx.lineTo(armSwing,-6.8);ctx.moveTo(0,4.5);ctx.lineTo(-armSwing,6.8);ctx.stroke();
+    // 手
+    ctx.fillStyle=invuln?'#fff':'#e8b890';ctx.beginPath();ctx.arc(armSwing,-6.8,1.6,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(-armSwing,6.8,1.6,0,Math.PI*2);ctx.fill();
+    // 头(前方, +x方向)
+    ctx.fillStyle=invuln?'#fff':'#e8b890';ctx.beginPath();ctx.arc(2.5,0,3.3,0,Math.PI*2);ctx.fill();
+    // 头发(覆盖后半球, 显出脸朝前)
+    ctx.fillStyle=invuln?'#fff':'#5a3a20';ctx.beginPath();ctx.arc(2.5,0,3.3,Math.PI*0.5,Math.PI*1.5);ctx.fill();
     ctx.restore();
-    ctx.fillStyle=invuln?'#fff':'#ff8c3c';ctx.beginPath();ctx.arc(ppx,ppy,9,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
     if(this.player.posture!=='walk'){ctx.fillStyle='rgba(100,180,255,0.8)';ctx.font='9px sans-serif';ctx.textAlign='center';ctx.fillText({walk:'',crouch:'蹲',prone:'卧'}[this.player.posture],ppx,ppy-18);}
     ctx.globalAlpha=1;
     if(this.player.hp<PLAYER_MAX_HP){const bw=20,bh=3,bx=ppx-bw/2,by=ppy-16;ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(bx-1,by-1,bw+2,bh+2);ctx.fillStyle='#3a1a1a';ctx.fillRect(bx,by,bw,bh);const r=this.player.hp/PLAYER_MAX_HP;ctx.fillStyle=r>0.5?'#4ade4a':r>0.25?'#e0a028':'#d83838';ctx.fillRect(bx,by,bw*r,bh);}
@@ -2350,7 +2471,20 @@ class Game{
   }
   loop(now){if(!now)now=performance.now();const dt=Math.min(0.05,(now-this.lastTime)/1000);this.lastTime=now;this.update(dt);this.draw();requestAnimationFrame(t=>this.loop(t));}
 }
-new Game();
+// === 地形贴图: 预加载后启动游戏, 失败/超时则用纯色兜底 ===
+const TEX={grass:null,sand:null,rock:null};
+(function(){
+  const list=[['grass','assets/tex_grass.jpg'],['sand','assets/tex_sand.jpg'],['rock','assets/tex_rock.jpg']];
+  let done=0,total=list.length,booted=false;
+  const boot=()=>{if(booted)return;booted=true;new Game();};
+  for(const[k,src]of list){
+    const im=new Image();
+    im.onload=()=>{TEX[k]=im;done++;if(done>=total)boot();};
+    im.onerror=()=>{done++;if(done>=total)boot();};
+    im.src=src;
+  }
+  setTimeout(boot,3000); // 3s超时兜底, 避免贴图加载失败导致游戏不启动
+})();
 </script>
 </body>
 </html>
