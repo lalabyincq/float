@@ -112,7 +112,7 @@ const TEMP_COMFORT=50,TEMP_COLD=30,TEMP_HOT=80;
 const MOVE_SPEED=3.2,SNEAK_SPEED=1.4;
 const PLAYER_MAX_HP=100,PLAYER_MAX_STAM=100;
 const STAM_REGEN=7,STAM_MOVE_DRAIN=0.4;
-const TURN_SPEED=8;
+const TURN_SPEED=4; // 降低转向速度实现方向惯性(原8过快, 4≈230°/s既保留响应又有迟滞感)
 // 武器等级 (伤害类型: spear=刺pierce, axe=斩cut; 骨器以上矛可淬毒)
 const WEAPONS={
   stone:{name:'石器',spearDmg:22,axeDmg:18,throwStam:22,meleeStam:8,color:'#c8a040',spearType:'pierce',axeType:'cut'},
@@ -438,6 +438,15 @@ class Animal{
     this.lureT=0; // B6: 被叫声吸引计时
     this.role=null; // D4: 驯服后角色(pack驮兽/hound猎犬)
     this.eatT=0; // E3: 进食冷却
+    // === 动物运动自然化: 方向惯性+速度曲线+alert迟疑+蛇形逃跑+恐惧记忆 ===
+    this.fleeMemory=0;      // 恐惧记忆: 进入flee时设5s, 期间不立刻恢复graze
+    this.speedLerp=0;       // 速度插值: flee/chase时0→1 in 0.4s, 实现起步加速曲线
+    this.alertDelay=0;      // alert迟疑: 进入alert时设0.3~1.7s, 模拟"僵立评估威胁"
+    this.snakePhase=Math.random()*Math.PI*2; // 蛇形逃跑相位(每只初始随机避免同步)
+    // === 个体差异: 让鹿群不像复制粘贴 ===
+    this.speedMult=0.9+Math.random()*0.2;   // 顶级速度±10%
+    this.alertRMult=0.85+Math.random()*0.3;  // 感知半径±15%
+    this.courage=Math.random();              // 胆量0~1: 高=近距离才逃+迟疑久; 低=远距离就逃+迟疑短
   }
   // === B3: 初始化 Need Zones(在岛屿上找水/草地/休息点) ===
   initNeedZones(island){
@@ -536,10 +545,15 @@ class Animal{
     } else if(!this.aggressive)this.state='flee';
     else this.state='chase';
   }
-  curSpeed(){
-    if(this.state==='graze')return this.baseSpeed*GRAZE_SPEED;
+  curSpeed(dt=0){
+    if(this.state==='graze')return this.baseSpeed*GRAZE_SPEED*this.speedMult;
     if(this.state==='alert')return 0;
-    let s=this.baseSpeed*(1-this.bleed*0.6)*(1-this.permSlow);
+    let s=this.baseSpeed*this.speedMult*(1-this.bleed*0.6)*(1-this.permSlow);
+    // 速度曲线: flee/chase时0→100% in 0.4s, 起步加速而非瞬满速
+    if(this.state==='flee'||this.state==='chase'){
+      if(dt>0)this.speedLerp=Math.min(1,this.speedLerp+dt/0.4);
+      s*=this.speedLerp;
+    }
     // === A4: 疲劳减速 / 愤怒加速 ===
     if(this.exhausted)s*=FATIGUE_SPEED;
     if(this.enraged)s*=ENRAGE_SPEED;
@@ -639,7 +653,7 @@ class Animal{
       if(sd<SCENT_RADIUS+0.5){smellR=Math.max(smellR,(this.aggressive?14:12)*mult*SMELL_CLOUD_MULT);break;}
     }
     // 综合感知范围 = max(视觉, 听觉, 嗅觉)
-    const alertR=Math.max((this.aggressive?WOLF_ALERT:DEER_ALERT)*mult, hearR, smellR);
+    const alertR=Math.max((this.aggressive?WOLF_ALERT:DEER_ALERT)*mult, hearR, smellR)*this.alertRMult; // 个体差异: 感知半径±15%
     const actR=(this.aggressive?WOLF_CHASE:DEER_FLEE)*mult;
 
     if(this.aggressive){
@@ -684,15 +698,42 @@ class Animal{
       }
       if(this.state==='attack'&&distP>2.0)this.state='chase';
     } else {
-      if(distP<actR){this.state='flee';}
-      else if(distP<alertR){this.state='alert';}
-      else if(this.state!=='flee'){this.state='graze';}
-      else if(distP>alertR+2){this.state='graze';}
+      // 食草动物: graze→alert(迟疑)→flee(加速+蛇形)→graze(脱险+记忆衰减)
+      // 个体差异 courage: 高=胆大(近才逃+迟疑久), 低=胆小(远就逃+迟疑短)
+      // 状态迟滞: 进入alert用alertR, 退出用alertExit(=alertR*1.3), 防止边界flicker
+      const alertExit=alertR*1.3;
+      const fleeEnter=actR*(1.3-this.courage*0.6); // 胆小1.3×actR, 胆大0.7×actR
+      if(this.state==='graze'){
+        if(distP<alertR){this.state='alert';this.alertDelay=(0.5+Math.random()*0.7)*(0.6+this.courage*0.8);}
+      } else if(this.state==='alert'){
+        if(this.alertDelay>0)this.alertDelay-=dt;
+        else {
+          if(distP<fleeEnter){this.state='flee';this.fleeMemory=5;this.speedLerp=0;}
+          else if(distP>alertExit)this.state='graze';
+        }
+      } else if(this.state==='flee'){
+        this.fleeMemory-=dt;
+        if(distP<fleeEnter)this.fleeMemory=Math.max(this.fleeMemory,3); // 持续威胁续命记忆
+        if(this.fleeMemory<=0&&distP>alertExit+2)this.state='graze';
+      }
     }
     if(this.atkCd>0)this.atkCd-=dt;
 
     let tx=0,ty=0;
-    if(this.state==='flee'){tx=-dxp;ty=-dyp;const len=Math.hypot(tx,ty)||1;tx/=len;ty/=len;this.turnTo(tx,ty,dt);}
+    if(this.state==='flee'){
+      // 基础方向: 远离玩家 + 蛇形偏移避免完全镜像同步
+      let bx=-dxp,by=-dyp;const bl=Math.hypot(bx,by)||1;bx/=bl;by/=bl;
+      let fx=bx,fy=by;
+      if(this.type==='deer'){
+        // 蛇形逃跑(只有鹿): 沿垂直方向±35°摆动, 2Hz, 每只相位随机避免同步
+        this.snakePhase+=dt*2;
+        const perpX=-by,perpY=bx;
+        const swing=Math.sin(this.snakePhase)*0.35;
+        fx=bx+perpX*swing;fy=by+perpY*swing;
+        const fl=Math.hypot(fx,fy)||1;fx/=fl;fy/=fl;
+      }
+      tx=fx;ty=fy;this.turnTo(tx,ty,dt);
+    }
     else if(this.state==='chase'){tx=dxp;ty=dyp;const len=Math.hypot(tx,ty)||1;tx/=len;ty/=len;this.turnTo(tx,ty,dt);}
     else if(this.state==='alert'){this.turnTo(dxp,dyp,dt);}
     else{
@@ -701,47 +742,7 @@ class Animal{
         this.lureT-=dt;
         const len=Math.hypot(dxp,dyp)||1;tx=dxp/len;ty=dyp/len;this.turnTo(tx,ty,dt);
       } else {
-      // === E3: 食肉动物捕猎食草动物 + 尸体进食回血 ===
-      let didHunt=false;
-      if(this.diet==='carnivore'){
-        // 1) 找附近尸体(鹿)进食
-        let corpse=null,corpseD=Infinity;
-        for(const a of game.animals){
-          if(a.state==='dead'&&a.type==='deer'){
-            const d=Math.hypot(a.x-this.x,a.y-this.y);
-            if(d<corpseD){corpseD=d;corpse=a;}
-          }
-        }
-        if(corpse&&corpseD<10){
-          const cdx=corpse.x-this.x,cdy=corpse.y-this.y,cLen=Math.hypot(cdx,cdy)||1;
-          if(cLen>0.8){tx=cdx/cLen;ty=cdy/cLen;this.turnTo(tx,ty,dt);this.state='chase';}
-          else{
-            this.eatT-=dt;
-            if(this.eatT<=0){this.eatT=1.2;this.hp=Math.min(this.maxHp,this.hp+EAT_HEAL);corpse.deadTimer-=6;}
-            tx=0;ty=0;this.state='graze';
-          }
-          didHunt=true;
-        } else {
-          // 2) 找附近鹿捕猎
-          let prey=null,preyD=PREDATOR_CHASE_R;
-          for(const a of game.animals){
-            if(a.type==='deer'&&a.state!=='dead'){
-              const d=Math.hypot(a.x-this.x,a.y-this.y);
-              if(d<preyD){preyD=d;prey=a;}
-            }
-          }
-          if(prey){
-            const pdx=prey.x-this.x,pdy=prey.y-this.y,pLen=Math.hypot(pdx,pdy)||1;
-            tx=pdx/pLen;ty=pdy/pLen;this.turnTo(tx,ty,dt);this.state='chase';
-            if(pLen<1.0&&this.atkCd<=0){
-              prey.takeDmg(PREDATOR_ATTACK_DMG,false,game);prey.state='flee';this.atkCd=1.0;
-            }
-            didHunt=true;
-          }
-        }
-      }
-      if(!didHunt){
-      // === B3: Need Zones 行为调度(仅 graze 状态) ===
+      // === B3: Need Zones 行为调度(仅 graze 状态; 取消狼鹿猎杀简化为只与玩家互动) ===
       const dt2=game.dayTime;
       let targetMode='graze';
       if((dt2>=NZ_DRINK_RANGE.min&&dt2<NZ_DRINK_RANGE.max)||(dt2>=NZ_DRINK2_RANGE.min&&dt2<NZ_DRINK2_RANGE.max))targetMode='drink';
@@ -761,10 +762,9 @@ class Animal{
           if(this.grazeMoveT>0){this.grazeMoveT-=dt;tx=this.wx;ty=this.wy;this.turnTo(tx,ty,dt);}
         }
       }
-      } // close didHunt
       } // close lureT else
     }
-    const sp=this.curSpeed()*dt;
+    const sp=this.curSpeed(dt)*dt;
     if(tx||ty){const nx=this.x+tx*sp,ny=this.y+ty*sp;if(is.walkable(nx,this.y))this.x=nx;if(is.walkable(this.x,ny))this.y=ny;}
     // 陷阱检测
     for(const tp of game.traps){if(!tp.triggered&&Math.hypot(tp.x-this.x,tp.y-this.y)<0.6){tp.triggered=true;tp.triggerT=TRAP_SLOW_DUR;this.trapSlowT=TRAP_SLOW_DUR;game.showMsg('动物踩中陷阱!');}}
