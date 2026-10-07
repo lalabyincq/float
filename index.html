@@ -317,17 +317,18 @@ class Island{
   }
   getElevAt(x,y){if(x<0||x>=MAP_W-1||y<0||y>=MAP_H-1)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;const e00=this.elev[y0][x0],e10=this.elev[y0][x0+1],e01=this.elev[y0+1][x0],e11=this.elev[y0+1][x0+1];return e00*(1-fx)*(1-fy)+e10*fx*(1-fy)+e01*(1-fx)*fy+e11*fx*fy;}
   walkable(x,y){
-    // 玩家位置所在的格(floor取整)必须可走, 不允许穿树/穿水
+    // 玩家位置所在的格(floor取整)必须可走, 不允许穿树/穿水/穿矿石/穿资源点
     // 用floor而非round: 路径点(格中心x.5,y.5)属于该格本身, 玩家走到格中心时仍在该格内
     const ix=Math.floor(x),iy=Math.floor(y);
     if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;
     const t=this.tiles[iy][ix];
     if(t===WATER||t===TREE)return false;
     if(t===ROCK)return this.obsHeight[iy][ix]<=1;
+    if(this.resources[`${ix},${iy}`])return false; // 矿石/水晶/皮木等资源点阻挡
     return true;
   }
   // 整数格是否可走(用于寻路), 含高度差检查
-  tileWalkable(ix,iy){if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
+  tileWalkable(ix,iy){if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;if(this.resources[`${ix},${iy}`])return false;return true;}
   // === A* 寻路: 返回路径点数组[{x,y}...], 起点不在路径中, 终点为最后一个点 ===
   findPath(sx,sy,tx,ty){
     // 用floor与walkable一致, 确保玩家位置所在的格判定与寻路一致
@@ -2326,6 +2327,10 @@ class Game{
     ctx.translate(-this.W/2,-this.H/2);
     // === 地形per-frame实时绘制(在ctx.scale内, 矢量运算缩放下清晰, 不再blurry预渲染) ===
     this._off=false;
+    // === 纹理跟随相机: 每帧更新pattern的translate抵消相机偏移, 让脚下纹理随世界移动 ===
+    // e,f在pattern的user-space; 经ctx.scale(z)后canvas偏移=e*z=-camSX*z, 抵消tile的-camSX*z偏移→纹理粘世界
+    const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
+    for(const k of['grass','sand','rock']){const p=this.pat[k];if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,-camSX,-camSY]));}
     const pcx=Math.round(this.camX),pcy=Math.round(this.camY);
     const R=VISION_FAR+1;
     for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){
@@ -2502,7 +2507,7 @@ class Game{
 // === 地形贴图: 预加载后启动游戏, 失败/超时则用纯色兜底 ===
 const TEX={grass:null,sand:null,rock:null};
 (function(){
-  const list=[['grass','assets/tex_grass.jpg'],['sand','assets/tex_sand.jpg'],['rock','assets/tex_rock.jpg']];
+  const list=[['grass','assets/tex_grass_dense.jpg'],['sand','assets/tex_sand.jpg'],['rock','assets/tex_rock.jpg']];
   let done=0,total=list.length,booted=false;
   const boot=()=>{if(booted)return;booted=true;new Game();};
   for(const[k,src]of list){
