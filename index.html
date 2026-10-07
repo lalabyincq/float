@@ -316,7 +316,15 @@ class Island{
     this.tiles[this.home.y][this.home.x]=HOME;this.obsHeight[this.home.y][this.home.x]=0;
   }
   getElevAt(x,y){if(x<0||x>=MAP_W-1||y<0||y>=MAP_H-1)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;const e00=this.elev[y0][x0],e10=this.elev[y0][x0+1],e01=this.elev[y0+1][x0],e11=this.elev[y0+1][x0+1];return e00*(1-fx)*(1-fy)+e10*fx*(1-fy)+e01*(1-fx)*fy+e11*fx*fy;}
-  walkable(x,y){const ix=Math.round(x),iy=Math.round(y);if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
+  walkable(x,y){
+    // 检查玩家位置周围4格中至少有1格可走(避免走在两格之间被单格树卡住)
+    const ix=Math.round(x),iy=Math.round(y);
+    if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;
+    const t=this.tiles[iy][ix];
+    if(t===WATER||t===TREE)return false;
+    if(t===ROCK)return this.obsHeight[iy][ix]<=1;
+    return true;
+  }
   // 整数格是否可走(用于寻路), 含高度差检查
   tileWalkable(ix,iy){if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
   // === A* 寻路: 返回路径点数组[{x,y}...], 起点不在路径中, 终点为最后一个点 ===
@@ -1109,8 +1117,8 @@ class Game{
         return;
       }
       if(t===TREE){
-        // 走到树旁砍树(目标用树中心, range放宽到1.6便于对角接近)
-        this.moveTarget={x:tx+0.5,y:ty+0.5,action:'chop',range:1.6,tx,ty};
+        // 走到树旁砍树(用整数格坐标让A*自动找可走邻居, range放宽到1.6)
+        this.moveTarget={x:tx,y:ty,action:'chop',range:1.6,tx,ty};
         this.showMsg('走向树木...');
         return;
       }
@@ -1602,10 +1610,14 @@ class Game{
       const mdx=tx-this.player.x,mdy=ty-this.player.y;
       const mdist=Math.hypot(mdx,mdy);
       const range=mt.range||0.4;
-      // 检测是否到达最终目标(用mt.x/mt.y而非路径点)
+      // 检测是否到达最终目标
+      // 1. 路径走完, 且与目标格距离<range+1.0(目标格不可走时, A*终点是其邻居, 多1格容差)
+      // 2. 或玩家与mt.x/mt.y直线距离<range(mt.x/mt.y可走时直接走过去)
       const fdx=mt.x-this.player.x,fdy=mt.y-this.player.y;
       const fdist=Math.hypot(fdx,fdy);
-      if(fdist<range){
+      const pathDone=!mt.path||mt.path.length===0;
+      const arrived=fdist<range||(pathDone&&fdist<range+1.2);
+      if(arrived){
         // 到达最终目标, 执行动作
         this.moveTarget=null;
         if(mt.action==='collect')this.doCollect();
@@ -1817,7 +1829,7 @@ class Game{
   // 地形类型→过渡色基准(用于边缘融合)
   _blendColor(nt){
     switch(nt){
-      case WATER:return '#1a6acc';
+      case WATER:return '#2a78d8';
       case GRASS:return '#4a8a3a';
       case SAND:return '#c8b478';
       case ROCK:return '#8a7e72';
@@ -1844,12 +1856,8 @@ class Game{
     let color;
     if(vis==='near'||vis==='far'){switch(t){
       case WATER:{
-        const wd=is.waterDepth?is.waterDepth[y][x]:1;
-        const depthT=Math.min(1,wd/2.5);
-        // 纯净海蓝色: 浅水亮蓝 → 深水深蓝, 加少量噪声做波纹感
-        color=lerpColor('#4aa8e8','#1a6acc',depthT);
-        color=lerpColor(color,'#0a4aaa',depthT*0.4);
-        color=lerpColor(color,lerpColor(color,'#8acaff',0.4),noise*0.25+0.5);
+        // 纯净蓝色(用户要求最终效果), 无深度变化无噪声
+        color='#2a78d8';
         break;
       }
       case GRASS:color=lerpColor('#224a26','#6aaa4a',Math.min(1,Math.max(0,avgE/4+noise*0.3)));break;
@@ -2210,19 +2218,10 @@ class Game{
     ctx.restore();
   }
   draw(){
-    const ctx=this.ctx;ctx.fillStyle='#0a3a6a';ctx.fillRect(0,0,this.W,this.H);
+    const ctx=this.ctx;ctx.fillStyle='#1a5a9a';ctx.fillRect(0,0,this.W,this.H);
     // === 预渲染地形blit(一次渲染, 每帧只复制可见区域) ===
     const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
     ctx.drawImage(this.terrainCanvas,camSX-this.W/2+this.terrainOffX,camSY-this.H/2+this.terrainOffY,this.W,this.H,0,0,this.W,this.H);
-    // 视野渐变(径向暗角, 替代逐格可见性检查) — 减轻强度避免画面过暗
-    const ps=this.toScreen(this.player.x,this.player.y,this.player.getHeight(this.island));
-    const ppx=ps.sx+this.W/2-camSX,ppy=ps.sy+this.H/2-camSY;
-    const visR=VISION_FAR*TW*0.5;
-    const grad=ctx.createRadialGradient(ppx,ppy,visR*0.85,ppx,ppy,visR*1.4);
-    grad.addColorStop(0,'rgba(8,16,32,0)');grad.addColorStop(1,'rgba(8,16,32,0.35)');
-    ctx.fillStyle=grad;ctx.fillRect(0,0,this.W,this.H);
-    // 水面动态波纹(仅可见水域)
-    this.drawWaterAnim(camSX,camSY);
     // 陷阱(地面层)
     for(const tp of this.traps)this.drawTrap(tp);
     // 火堆(地面层, 有光效)
@@ -2245,8 +2244,9 @@ class Game{
     if(!pInserted)this.drawPlayer();
     // 嗥叫特效(顶层)
     for(const h of this.howlEffects)this.drawHowlEffect(h);
+    // 夜晚仅以稍深蓝调示意, 不再覆盖黑色(避免画面过暗)
     const night=Math.abs(this.dayTime-50)/50;
-    if(night>0.3){ctx.fillStyle=`rgba(5,10,25,${(night-0.3)/0.7*0.4})`;ctx.fillRect(0,0,this.W,this.H);}
+    if(night>0.3){ctx.fillStyle=`rgba(10,20,50,${(night-0.3)/0.7*0.18})`;ctx.fillRect(0,0,this.W,this.H);}
     if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='14px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.6,w,28);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.6+19);}
     // === E2: 小地图(顶层) ===
     this.drawMinimap();
@@ -2307,7 +2307,7 @@ class Game{
         if(!this.island.memory[y][x])continue;
         const t=this.island.tiles[y][x];
         let c;
-        switch(t){case WATER:c='#1a6acc';break;case GRASS:c='#2a5e32';break;case SAND:c='#a89060';break;case ROCK:c='#6a5e52';break;case TREE:c='#1e4a28';break;case HOME:c='#3c8246';break;default:c='#222';}
+        switch(t){case WATER:c='#2a78d8';break;case GRASS:c='#2a5e32';break;case SAND:c='#a89060';break;case ROCK:c='#6a5e52';break;case TREE:c='#1e4a28';break;case HOME:c='#3c8246';break;default:c='#222';}
         ctx.fillStyle=c;ctx.fillRect(mmX+x*tileW,mmY+y*tileH,Math.ceil(tileW),Math.ceil(tileH));
       }
     }
