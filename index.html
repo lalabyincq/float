@@ -311,6 +311,80 @@ class Island{
   }
   getElevAt(x,y){if(x<0||x>=MAP_W-1||y<0||y>=MAP_H-1)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;const e00=this.elev[y0][x0],e10=this.elev[y0][x0+1],e01=this.elev[y0+1][x0],e11=this.elev[y0+1][x0+1];return e00*(1-fx)*(1-fy)+e10*fx*(1-fy)+e01*(1-fx)*fy+e11*fx*fy;}
   walkable(x,y){const ix=Math.round(x),iy=Math.round(y);if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
+  // 整数格是否可走(用于寻路), 含高度差检查
+  tileWalkable(ix,iy){if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
+  // === A* 寻路: 返回路径点数组[{x,y}...], 起点不在路径中, 终点为最后一个点 ===
+  findPath(sx,sy,tx,ty){
+    const ix0=Math.round(sx),iy0=Math.round(sy),ix1=Math.round(tx),iy1=Math.round(ty);
+    // 终点不可走(树/水/矿石/高石): 找最近的可走邻居作为终点
+    let ex=ix1,ey=iy1;
+    if(!this.tileWalkable(ex,ey)){
+      let best=null,bestD=Infinity;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+        const nx=ix1+dx,ny=iy1+dy;
+        if(!this.tileWalkable(nx,ny))continue;
+        const d=Math.hypot(dx,dy);
+        if(d<bestD){bestD=d;best={x:nx,y:ny};}
+      }
+      if(!best)return null;
+      ex=best.x;ey=best.y;
+    }
+    // 起点不可走: 用最近的相邻可走格作为实际起点
+    let sx2=ix0,sy2=iy0;
+    if(!this.tileWalkable(sx2,sy2)){
+      let best=null,bestD=Infinity;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        if(dx===0&&dy===0)continue;
+        const nx=ix0+dx,ny=iy0+dy;
+        if(!this.tileWalkable(nx,ny))continue;
+        const d=Math.hypot(dx,dy);
+        if(d<bestD){bestD=d;best={x:nx,y:ny};}
+      }
+      if(!best)return null;
+      sx2=best.x;sy2=best.y;
+    }
+    // A* 主体
+    const idx=(x,y)=>y*MAP_W+x;
+    const h=(x,y)=>Math.hypot(x-ex,y-ey);
+    const open=new Map();
+    const closed=new Set();
+    const start={x:sx2,y:sy2,g:0,f:h(sx2,sy2),parent:null};
+    open.set(idx(sx2,sy2),start);
+    const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    let iter=0,MAX_ITER=2000;
+    while(open.size>0&&iter<MAX_ITER){
+      iter++;
+      // 取f最小(小地图用线性扫描足够)
+      let cur=null,curF=Infinity,curK=-1;
+      for(const[k,n]of open){if(n.f<curF){curF=n.f;cur=n;curK=k;}}
+      if(cur.x===ex&&cur.y===ey){
+        // 回溯路径
+        const path=[];
+        let n=cur;
+        while(n.parent){path.unshift({x:n.x+0.5,y:n.y+0.5});n=n.parent;}
+        return path;
+      }
+      open.delete(curK);closed.add(curK);
+      for(const[dx,dy]of dirs){
+        const nx=cur.x+dx,ny=cur.y+dy;
+        if(!this.tileWalkable(nx,ny))continue;
+        const k=idx(nx,ny);
+        if(closed.has(k))continue;
+        // 对角线不能穿墙(两侧均不可走则禁)
+        if(dx!==0&&dy!==0){
+          if(!this.tileWalkable(cur.x+dx,cur.y)||!this.tileWalkable(cur.x,cur.y+dy))continue;
+        }
+        const step=(dx!==0&&dy!==0)?1.414:1;
+        const g=cur.g+step;
+        const ex_old=open.get(k);
+        if(!ex_old||g<ex_old.g){
+          const node={x:nx,y:ny,g,f:g+h(nx,ny),parent:cur};
+          open.set(k,node);
+        }
+      }
+    }
+    return null;
+  }
   spawnPoint(safeFrom=null,safeRadius=8){for(let i=0;i<200;i++){const x=4+Math.floor(this.rand()*(MAP_W-8)),y=4+Math.floor(this.rand()*(MAP_H-8));if(this.tiles[y][x]===GRASS&&this.elev[y][x]>0.3){if(safeFrom&&Math.hypot(x-safeFrom.x,y-safeFrom.y)<safeRadius)continue;return{x,y};}}return{x:Math.floor(MAP_W/2),y:Math.floor(MAP_H/2)};}
 }
 
@@ -1487,14 +1561,46 @@ class Game{
   update(dt){
     let{dx,dy}=this.getKeys();
     if(dx===0&&dy===0){dx=this.moveDX;dy=this.moveDY;}
-    // === 双击移动: 无键盘输入时自动走向moveTarget ===
+    // === 双击移动: 无键盘输入时自动走向moveTarget (带A*寻路) ===
     if(dx===0&&dy===0&&this.moveTarget){
       const mt=this.moveTarget;
-      const mdx=mt.x-this.player.x,mdy=mt.y-this.player.y;
+      // 追击活体目标: 每帧更新坐标(动态目标)
+      if(mt.action==='melee'&&mt.target&&mt.target.state!=='dead'){
+        mt.x=mt.target.x;mt.y=mt.target.y;
+      }else if(mt.action==='melee'&&(mt.target&&mt.target.state==='dead')){
+        // 目标已死, 自动采集
+        mt.action='collect';mt.range=1.2;
+      }
+      // 路径规划: 无路径/到达路径末尾/动态目标定时重算
+      const needReplan=!mt.path||mt.path.length===0||(mt.action==='melee'&&(mt.replanT=(mt.replanT||0)+dt)>0.5);
+      if(needReplan){
+        mt.replanT=0;
+        const path=this.island.findPath(this.player.x,this.player.y,mt.x,mt.y);
+        if(path&&path.length>0){
+          mt.path=path;
+          // 如果重算路径距离明显短于直线(被绕路), 保留mt.x/mt.y作为最终目标
+        }else if(!mt.path){
+          // 寻路失败, 直接退化为直线
+          mt.path=null;
+        }
+      }
+      // 当前要走的下一路径点
+      let tx=mt.x,ty=mt.y;
+      if(mt.path&&mt.path.length>0){
+        // 跳过已抵达的路径点
+        while(mt.path.length>0&&Math.hypot(mt.path[0].x-this.player.x,mt.path[0].y-this.player.y)<0.5){
+          mt.path.shift();
+        }
+        if(mt.path.length>0){tx=mt.path[0].x;ty=mt.path[0].y;}
+      }
+      const mdx=tx-this.player.x,mdy=ty-this.player.y;
       const mdist=Math.hypot(mdx,mdy);
       const range=mt.range||0.4;
-      if(mdist<range){
-        // 到达目标, 执行动作
+      // 检测是否到达最终目标(用mt.x/mt.y而非路径点)
+      const fdx=mt.x-this.player.x,fdy=mt.y-this.player.y;
+      const fdist=Math.hypot(fdx,fdy);
+      if(fdist<range){
+        // 到达最终目标, 执行动作
         this.moveTarget=null;
         if(mt.action==='collect')this.doCollect();
         else if(mt.action==='fish')this.doFish();
@@ -1509,20 +1615,13 @@ class Game{
           this.player.facing=Math.atan2(ddy,ddx);
           this.meleeQueued=true;
         }
-      }else{
-        // 追击活体目标: 每帧更新坐标
-        if(mt.action==='melee'&&mt.target&&mt.target.state!=='dead'){
-          mt.x=mt.target.x;mt.y=mt.target.y;
-        }else if(mt.action==='melee'&&(mt.target&&mt.target.state==='dead')){
-          // 目标已死, 自动采集
-          mt.action='collect';mt.range=1.2;
-        }
-        // 卡死检测: 玩家长时间无法接近目标(被地形卡住) → 取消
+      }else if(mdist>0.01){
+        // 卡死检测
         mt.stuckT=(mt.stuckT||0)+dt;
         const moved=Math.hypot(this.player.x-(mt.lastX??this.player.x),this.player.y-(mt.lastY??this.player.y));
         if(moved>0.001)mt.stuckT=0;
         mt.lastX=this.player.x;mt.lastY=this.player.y;
-        if(mt.stuckT>2.0){this.showMsg('无法到达目标');this.moveTarget=null;}
+        if(mt.stuckT>3.0){this.showMsg('无法到达目标');this.moveTarget=null;}
         else{dx=mdx/mdist;dy=mdy/mdist;}
       }
     }else if(dx!==0||dy!==0){this.moveTarget=null;} // 键盘操作取消自动移动
