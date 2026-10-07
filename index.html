@@ -859,11 +859,11 @@ class Game{
     this.terrainCanvas.width=(MAP_W+MAP_H)*TW/2+200;
     this.terrainCanvas.height=(MAP_W+MAP_H)*TH/2+200;
     this.terrainCtx=this.terrainCanvas.getContext('2d');
-    // === 地形贴图pattern(在terrainCtx上创建, drawTile填充时用) ===
+    // === 地形贴图pattern(创建在this.ctx上, per-frame drawTile用; setTransform 0.4让zoom3下清晰) ===
     this.pat={};
-    if(TEX.grass){const p=this.terrainCtx.createPattern(TEX.grass,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix(['2.5','0','0','2.5','0','0']));this.pat.grass=p;}
-    if(TEX.sand){const p=this.terrainCtx.createPattern(TEX.sand,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix(['2','0','0','2','0','0']));this.pat.sand=p;}
-    if(TEX.rock){const p=this.terrainCtx.createPattern(TEX.rock,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix(['2','0','0','2','0','0']));this.pat.rock=p;}
+    if(TEX.grass){const p=this.ctx.createPattern(TEX.grass,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,0,0]));this.pat.grass=p;}
+    if(TEX.sand){const p=this.ctx.createPattern(TEX.sand,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,0,0]));this.pat.sand=p;}
+    if(TEX.rock){const p=this.ctx.createPattern(TEX.rock,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,0,0]));this.pat.rock=p;}
     this.zoom=3; // 相机缩放倍数(人物显示放大约3倍)
     this.spawnAnimals(8,6);
     this.renderTerrain();
@@ -1627,7 +1627,7 @@ class Game{
     const d=Math.hypot(x-this.player.x,y-this.player.y);
     if(d<=near)return'near';if(d<=far)return'far';return null;
   }
-  updateMemory(){const px=Math.round(this.player.x),py=Math.round(this.player.y);const newly=[];for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){const tx=px+dx,ty=py+dy;if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H){if(!this.island.memory[ty][tx]){this.island.memory[ty][tx]=true;newly.push({x:tx,y:ty});}}}if(newly.length>0){this._off=true;for(const t of newly)this.drawTile(t.x,t.y);this._off=false;}}
+  updateMemory(){const px=Math.round(this.player.x),py=Math.round(this.player.y);for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){const tx=px+dx,ty=py+dy;if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H)this.island.memory[ty][tx]=true;}}
   update(dt){
     let{dx,dy}=this.getKeys();
     if(dx===0&&dy===0){dx=this.moveDX;dy=this.moveDY;}
@@ -1842,13 +1842,8 @@ class Game{
   cornerScreen(i,j,e){const sx=(i-j)*TW/2,sy=(i+j)*TH/2-e*ELEV;if(this._off)return{x:sx+this.terrainOffX,y:sy+this.terrainOffY};return{x:sx+this.W/2-this.toScreen(this.camX,this.camY).sx,y:sy+this.H/2-this.toScreen(this.camX,this.camY).sy};}
   // === 预渲染整张地形到离屏Canvas(一次渲染, 每帧只blit可见区域) ===
   renderTerrain(){
-    this._off=true;
-    const tc=this.terrainCtx;
-    tc.fillStyle='#0a3a6a';tc.fillRect(0,0,this.terrainCanvas.width,this.terrainCanvas.height);
-    for(let s=0;s<=MAP_W+MAP_H-2;s++){
-      for(let x=Math.max(0,s-MAP_H+1);x<=Math.min(MAP_W-1,s);x++){const y=s-x;this.drawTile(x,y);}
-    }
-    this._off=false;
+    // per-frame实时渲染, 不再预渲染到terrainCanvas(避免缩放放大预渲染canvas导致blurry)
+    // 保留方法为空以兼容调用
   }
   // === 水面动态波纹(仅可见水域, 每帧绘制) ===
   drawWaterAnim(camSX,camSY){
@@ -1885,7 +1880,7 @@ class Game{
     const is=this.island;const t=is.tiles[y][x];const oh=is.obsHeight[y][x];
     let vis,mem;
     if(this._off){mem=is.memory[y][x];vis=mem?'near':null;}
-    else{vis=this.visible(x,y);mem=is.memory[y][x];if(vis!=='near'&&vis!=='far'&&!mem)return;}
+    else{vis=this.visible(x,y);mem=is.memory[y][x];if(vis===null&&!mem)return;if(!mem)vis=null;} // 未探索可见格渲染灰色雾
     const ctx=this._off?this.terrainCtx:this.ctx;
     const wf=(t===WATER)?0:null;
     const eNW=wf!==null?wf:this.nodeElev(x,y),eNE=wf!==null?wf:this.nodeElev(x+1,y),eSE=wf!==null?wf:this.nodeElev(x+1,y+1),eSW=wf!==null?wf:this.nodeElev(x,y+1);
@@ -2329,11 +2324,15 @@ class Game{
     ctx.translate(this.W/2,this.H/2);
     ctx.scale(z,z);
     ctx.translate(-this.W/2,-this.H/2);
-    // === 预渲染地形blit(一次渲染, 每帧只复制可见区域; 缩放下采样1/z区域) ===
-    const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
-    const srcW=this.W/z,srcH=this.H/z;
-    ctx.imageSmoothingEnabled=true;
-    ctx.drawImage(this.terrainCanvas,camSX-srcW/2+this.terrainOffX,camSY-srcH/2+this.terrainOffY,srcW,srcH,0,0,this.W,this.H);
+    // === 地形per-frame实时绘制(在ctx.scale内, 矢量运算缩放下清晰, 不再blurry预渲染) ===
+    this._off=false;
+    const pcx=Math.round(this.camX),pcy=Math.round(this.camY);
+    const R=VISION_FAR+1;
+    for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){
+      const tx=pcx+dx,ty=pcy+dy;
+      if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H)continue;
+      this.drawTile(tx,ty);
+    }
     // 陷阱(地面层)
     for(const tp of this.traps)this.drawTrap(tp);
     // 火堆(地面层, 有光效)
