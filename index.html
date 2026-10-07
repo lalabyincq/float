@@ -317,13 +317,26 @@ class Island{
   }
   getElevAt(x,y){if(x<0||x>=MAP_W-1||y<0||y>=MAP_H-1)return 0;const x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;const e00=this.elev[y0][x0],e10=this.elev[y0][x0+1],e01=this.elev[y0+1][x0],e11=this.elev[y0+1][x0+1];return e00*(1-fx)*(1-fy)+e10*fx*(1-fy)+e01*(1-fx)*fy+e11*fx*fy;}
   walkable(x,y){
-    // 检查玩家位置周围4格中至少有1格可走(避免走在两格之间被单格树卡住)
-    const ix=Math.round(x),iy=Math.round(y);
-    if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;
-    const t=this.tiles[iy][ix];
-    if(t===WATER||t===TREE)return false;
-    if(t===ROCK)return this.obsHeight[iy][ix]<=1;
-    return true;
+    // 玩家移动检查: 当前位置周围4角格中至少1格可走即允许
+    // (避免玩家走在树旁时因round取整到树格而被完全卡住无法移动)
+    const fx=Math.floor(x),fy=Math.floor(y);
+    if(fx<0||fx>=MAP_W||fy<0||fy>=MAP_H)return false;
+    // 检查目标点所在的4个格子角, 至少1格可走
+    const t00=this.tiles[fy][fx];
+    if(t00!==WATER&&t00!==TREE&&!(t00===ROCK&&this.obsHeight[fy][fx]>1))return true;
+    if(fy+1<MAP_H){
+      const t=this.tiles[fy+1][fx];
+      if(t!==WATER&&t!==TREE&&!(t===ROCK&&this.obsHeight[fy+1][fx]>1))return true;
+    }
+    if(fx+1<MAP_W){
+      const t=this.tiles[fy][fx+1];
+      if(t!==WATER&&t!==TREE&&!(t===ROCK&&this.obsHeight[fy][fx+1]>1))return true;
+    }
+    if(fx+1<MAP_W&&fy+1<MAP_H){
+      const t=this.tiles[fy+1][fx+1];
+      if(t!==WATER&&t!==TREE&&!(t===ROCK&&this.obsHeight[fy+1][fx+1]>1))return true;
+    }
+    return false;
   }
   // 整数格是否可走(用于寻路), 含高度差检查
   tileWalkable(ix,iy){if(ix<0||ix>=MAP_W||iy<0||iy>=MAP_H)return false;const t=this.tiles[iy][ix];if(t===WATER||t===TREE)return false;if(t===ROCK)return this.obsHeight[iy][ix]<=1;return true;}
@@ -343,11 +356,11 @@ class Island{
       if(!best)return null;
       ex=best.x;ey=best.y;
     }
-    // 起点不可走: 用最近的相邻可走格作为实际起点
+    // 起点不可走: 在更大范围(3格)内找最近可走格作为实际起点
     let sx2=ix0,sy2=iy0;
     if(!this.tileWalkable(sx2,sy2)){
       let best=null,bestD=Infinity;
-      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){
         if(dx===0&&dy===0)continue;
         const nx=ix0+dx,ny=iy0+dy;
         if(!this.tileWalkable(nx,ny))continue;
@@ -1860,17 +1873,17 @@ class Game{
         color='#2a78d8';
         break;
       }
-      case GRASS:color=lerpColor('#224a26','#6aaa4a',Math.min(1,Math.max(0,avgE/4+noise*0.3)));break;
+      case GRASS:color=lerpColor('#3a7a3a','#8acc5a',Math.min(1,Math.max(0,avgE/4+noise*0.3)));break;
       case SAND:{
         const wet=is.wetSand&&is.wetSand[`${x},${y}`];
-        color=lerpColor(wet?'#8a7848':'#b0a060',wet?'#a89858':'#d8c888',Math.min(1,Math.max(0,avgE+noise*0.2)));
+        color=lerpColor(wet?'#a89858':'#d8c878',wet?'#c8b878':'#e8d898',Math.min(1,Math.max(0,avgE+noise*0.2)));
         break;
       }
-      case ROCK:color=lerpColor('#6a5e52','#9a8e82',0.3+noise*0.4);break;
-      case TREE:color=lerpColor('#224a26','#5a8a3a',Math.min(1,Math.max(0,avgE/4+noise*0.3)));break;
-      case HOME:color=lerpColor('#2c6a36','#4ca856',0.4+noise*0.2);break;
+      case ROCK:color=lerpColor('#8a7e72','#b0a498',0.3+noise*0.4);break;
+      case TREE:color=lerpColor('#3a7a3a','#7acc5a',Math.min(1,Math.max(0,avgE/4+noise*0.3)));break;
+      case HOME:color=lerpColor('#4c8a46','#6cc876',0.4+noise*0.2);break;
     }}
-    else color='#1e232d';
+    else color='#5a6066';
     // === 略微放大填充消除格缝(水面放大更多, 避免深色背景漏出) ===
     const ex=(t===WATER)?1.06:1.018;
     const fNW={x:cx+(pNW.x-cx)*ex,y:cy+(pNW.y-cy)*ex};
@@ -2230,8 +2243,7 @@ class Game{
     for(const t of this.tracks)this.drawTrack(t);
     // === B2: 粪便 ===
     for(const d of this.droppings)this.drawDropping(d);
-    // === B1: 气味云(地面层, 半透明蓝) ===
-    for(const sc of this.scents)this.drawScent(sc);
+    // === B1: 气味云绘制已取消(视觉效果不佳, 但底层逻辑保留供动物嗅觉判定) ===
     // === A5: 拾取物(稀有素材掉落) ===
     for(const pk of this.pickups)this.drawPickup(pk);
     // 动物/矛/玩家按y排序
@@ -2244,9 +2256,7 @@ class Game{
     if(!pInserted)this.drawPlayer();
     // 嗥叫特效(顶层)
     for(const h of this.howlEffects)this.drawHowlEffect(h);
-    // 夜晚仅以稍深蓝调示意, 不再覆盖黑色(避免画面过暗)
-    const night=Math.abs(this.dayTime-50)/50;
-    if(night>0.3){ctx.fillStyle=`rgba(10,20,50,${(night-0.3)/0.7*0.18})`;ctx.fillRect(0,0,this.W,this.H);}
+    // 不再以暗色覆盖夜晚, 保持画面始终明亮
     if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='14px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.6,w,28);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.6+19);}
     // === E2: 小地图(顶层) ===
     this.drawMinimap();
