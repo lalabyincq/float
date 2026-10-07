@@ -1725,28 +1725,14 @@ class Game{
     }
     this.scents=this.scents.filter(sc=>sc.life>0);
     }
-    // === B2: 粪便老化 ===
-    for(const d of this.droppings)d.age+=dt;
-    this.droppings=this.droppings.filter(d=>d.age<DROPPING_LIFE);
-    // 玩家靠近粪便时显示信息
-    this.checkDroppingInfo();
+    // === B2: 粪便系统已取消(用户反馈不需要) ===
     // === B5: 狩猎压力衰减 ===
     this.pressureDecayT+=dt;
     if(this.pressureDecayT>=PRESSURE_DECAY){
       this.pressureDecayT=0;
       for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){if(this.pressure[y][x]>0)this.pressure[y][x]=Math.max(0,this.pressure[y][x]-1);}
     }
-    // 痕迹: 动物移动留足迹, 受伤留血迹
-    for(const a of this.animals){
-      if(a.state==='dead')continue;
-      a.trackT=(a.trackT||0)-dt;
-      if(a.trackT<=0){
-        a.trackT=0.5; // 每0.5秒留一个足迹
-        this.tracks.push({x:a.x,y:a.y,type:a.type,facing:a.facing,bleed:a.bleed>0.2,life:TRACK_LIFETIME});
-      }
-    }
-    for(const t of this.tracks)t.life-=dt;
-    this.tracks=this.tracks.filter(t=>t.life>0);
+    // 痕迹(足迹/血迹)系统已取消(用户反馈不需要)
     // 嗥叫特效
     for(const h of this.howlEffects)h.t-=dt;
     this.howlEffects=this.howlEffects.filter(h=>h.t>0);
@@ -2228,10 +2214,8 @@ class Game{
     for(const tp of this.traps)this.drawTrap(tp);
     // 火堆(地面层, 有光效)
     for(const f of this.fires)this.drawFire(f);
-    // 痕迹(足迹/血迹)
-    for(const t of this.tracks)this.drawTrack(t);
-    // === B2: 粪便 ===
-    for(const d of this.droppings)this.drawDropping(d);
+    // 痕迹(足迹/血迹)系统已取消(用户反馈不需要)
+    // === B2: 粪便系统已取消(用户反馈不需要) ===
     // === B1: 气味云绘制已取消(视觉效果不佳, 但底层逻辑保留供动物嗅觉判定) ===
     // === A5: 拾取物(稀有素材掉落) ===
     for(const pk of this.pickups)this.drawPickup(pk);
