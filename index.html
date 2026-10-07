@@ -860,12 +860,6 @@ class Game{
     this.terrainCanvas.width=(MAP_W+MAP_H)*TW/2+200;
     this.terrainCanvas.height=(MAP_W+MAP_H)*TH/2+200;
     this.terrainCtx=this.terrainCanvas.getContext('2d');
-    // === 地形贴图pattern(创建在this.ctx上, per-frame drawTile用; setTransform 0.4让zoom3下清晰) ===
-    this.pat={};
-    if(TEX.grass){const p=this.ctx.createPattern(TEX.grass,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,0,0]));this.pat.grass=p;}
-    if(TEX.sand){const p=this.ctx.createPattern(TEX.sand,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,0,0]));this.pat.sand=p;}
-    if(TEX.rock){const p=this.ctx.createPattern(TEX.rock,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,0,0]));this.pat.rock=p;}
-    if(TEX.water){const p=this.ctx.createPattern(TEX.water,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,0,0]));this.pat.water=p;}
     this.zoom=3; // 相机缩放倍数(人物显示放大约3倍)
     this.spawnAnimals(8,6);
     this.renderTerrain();
@@ -1917,17 +1911,9 @@ class Game{
     const fNE={x:cx+(pNE.x-cx)*ex,y:cy+(pNE.y-cy)*ex};
     const fSE={x:cx+(pSE.x-cx)*ex,y:cy+(pSE.y-cy)*ex};
     const fSW={x:cx+(pSW.x-cx)*ex,y:cy+(pSW.y-cy)*ex};
-    // 填充: 有贴图pattern用贴图(草/沙/岩/水), 否则用计算出的纯色; 树/营地下用草地贴图
-    let pat=null;
-    if(t===GRASS)pat=this.pat.grass;
-    else if(t===SAND)pat=this.pat.sand;
-    else if(t===ROCK)pat=this.pat.rock;
-    else if(t===WATER)pat=this.pat.water;
-    else if(t===TREE||t===HOME)pat=this.pat.grass;
-    ctx.fillStyle=pat||color;
+    // 填充: 用计算出的纯色(取消贴图, 用户反馈贴图难看, 回归纯色+程序纹理)
+    ctx.fillStyle=color;
     ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();
-    // 贴图模式下叠一层淡色阴影按高程给立体感(无贴图时已有color变化, 跳过)
-    if(pat&&t!==WATER){ctx.fillStyle=`rgba(20,30,10,${Math.min(0.25,avgE*0.04)})`;ctx.beginPath();ctx.moveTo(fNW.x,fNW.y);ctx.lineTo(fNE.x,fNE.y);ctx.lineTo(fSE.x,fSE.y);ctx.lineTo(fSW.x,fSW.y);ctx.closePath();ctx.fill();}
     // === 子格子色斑: 基于世界坐标连续噪声, 同类型区域融合看不出格子 ===
     if(vis==='near'||vis==='far'){
       const f=0.28;
@@ -2284,10 +2270,6 @@ class Game{
     ctx.translate(-this.W/2,-this.H/2);
     // === 地形per-frame实时绘制(在ctx.scale内, 矢量运算缩放下清晰, 不再blurry预渲染) ===
     this._off=false;
-    // === 纹理跟随相机: 每帧更新pattern的translate抵消相机偏移, 让脚下纹理随世界移动 ===
-    // e,f在pattern的user-space; 经ctx.scale(z)后canvas偏移=e*z=-camSX*z, 抵消tile的-camSX*z偏移→纹理粘世界
-    const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
-    for(const k of['grass','sand','rock','water']){const p=this.pat[k];if(p&&p.setTransform)p.setTransform(new DOMMatrix([0.4,0,0,0.4,-camSX,-camSY]));}
     const pcx=Math.round(this.camX),pcy=Math.round(this.camY);
     const R=VISION_FAR+1;
     for(let dy=-R;dy<=R;dy++)for(let dx=-R;dx<=R;dx++){
@@ -2461,20 +2443,7 @@ class Game{
   }
   loop(now){if(!now)now=performance.now();const dt=Math.min(0.05,(now-this.lastTime)/1000);this.lastTime=now;this.update(dt);this.draw();requestAnimationFrame(t=>this.loop(t));}
 }
-// === 地形贴图: 预加载后启动游戏, 失败/超时则用纯色兜底 ===
-const TEX={grass:null,sand:null,rock:null,water:null};
-(function(){
-  const list=[['grass','assets/tex_grass_dense.jpg'],['sand','assets/tex_sand.jpg'],['rock','assets/tex_rock.jpg'],['water','assets/tex_water.jpg']];
-  let done=0,total=list.length,booted=false;
-  const boot=()=>{if(booted)return;booted=true;new Game();};
-  for(const[k,src]of list){
-    const im=new Image();
-    im.onload=()=>{TEX[k]=im;done++;if(done>=total)boot();};
-    im.onerror=()=>{done++;if(done>=total)boot();};
-    im.src=src;
-  }
-  setTimeout(boot,3000); // 3s超时兜底, 避免贴图加载失败导致游戏不启动
-})();
+new Game();
 </script>
 </body>
 </html>
