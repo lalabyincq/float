@@ -120,7 +120,7 @@ const WEAPONS={
   metal:{name:'金属',spearDmg:55,axeDmg:45,throwStam:18,meleeStam:6,color:'#c0c0d8',spearType:'pierce',axeType:'cut',poison:true},
 };
 const SPEAR_SPEED=9,SPEAR_RANGE=7;
-const MELEE_RANGE=1.8,MELEE_CD=0.6,MELEE_ARC=Math.PI/3;
+const MELEE_RANGE=1.0,MELEE_CD=0.6,MELEE_ARC=Math.PI/3; // 近战距离1.0格(刀实体够得着)
 const HEAD_OFFSET=0.4,HEAD_RADIUS=0.35,BODY_RADIUS=0.7;
 // 部位系统: 5个部位, 各有基础倍率/对武器类型吸收率/部位HP/效果/掉落(参考怪猎肉质)
 // cutRate=斩(斧), pierceRate=刺(矛), bluntRate=钝(锤); 吸收率越高该武器打该部位越痛
@@ -861,9 +861,10 @@ class Game{
     this.terrainCtx=this.terrainCanvas.getContext('2d');
     // === 地形贴图pattern(在terrainCtx上创建, drawTile填充时用) ===
     this.pat={};
-    if(TEX.grass)this.pat.grass=this.terrainCtx.createPattern(TEX.grass,'repeat');
-    if(TEX.sand)this.pat.sand=this.terrainCtx.createPattern(TEX.sand,'repeat');
-    if(TEX.rock)this.pat.rock=this.terrainCtx.createPattern(TEX.rock,'repeat');
+    if(TEX.grass){const p=this.terrainCtx.createPattern(TEX.grass,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix(['2.5','0','0','2.5','0','0']));this.pat.grass=p;}
+    if(TEX.sand){const p=this.terrainCtx.createPattern(TEX.sand,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix(['2','0','0','2','0','0']));this.pat.sand=p;}
+    if(TEX.rock){const p=this.terrainCtx.createPattern(TEX.rock,'repeat');if(p&&p.setTransform)p.setTransform(new DOMMatrix(['2','0','0','2','0','0']));this.pat.rock=p;}
+    this.zoom=3; // 相机缩放倍数(人物显示放大约3倍)
     this.spawnAnimals(8,6);
     this.renderTerrain();
     this.msg='';this.msgTimer=0;this.lastTime=performance.now();
@@ -1006,8 +1007,10 @@ class Game{
   }
   // === 屏幕坐标→世界坐标(逆等距投影) ===
   screenToWorld(sx,sy){
+    const z=this.zoom||1;
     const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
-    const lx=sx-this.W/2+camSX,ly=sy-this.H/2+camSY;
+    // 反推缩放: 屏幕偏移/z = 绘制坐标偏移, 再加camSX得到世界对应的terrain坐标
+    const lx=(sx-this.W/2)/z+camSX,ly=(sy-this.H/2)/z+camSY;
     return{x:lx/TW+ly/TH,y:-lx/TW+ly/TH};
   }
   // === 查找点击位置附近的实体 ===
@@ -1112,6 +1115,13 @@ class Game{
     const tx=Math.round(w.x),ty=Math.round(w.y);
     if(tx>=0&&tx<MAP_W&&ty>=0&&ty<MAP_H){
       const t=this.island.tiles[ty][tx];
+      // === 基地存仓: 点击基地附近1.5格内也算(房子sprite小, 容易点偏) ===
+      const dHome=Math.hypot(w.x-this.island.home.x,w.y-this.island.home.y);
+      if(t===HOME||dHome<=1.5){
+        this.moveTarget={x:this.island.home.x,y:this.island.home.y,action:'deposit',range:1.6};
+        this.showMsg('走向营地存仓...');
+        return;
+      }
       if(t===WATER){
         // 走到该水域旁最近的岸边(可走且邻水)再捕鱼, 而不是走向水本身
         const spot=this._findFishSpot(tx,ty);
@@ -1131,12 +1141,6 @@ class Game{
         // 走到树旁砍树(用整数格坐标让A*自动找可走邻居, range放宽到1.6)
         this.moveTarget={x:tx,y:ty,action:'chop',range:1.6,tx,ty};
         this.showMsg('走向树木...');
-        return;
-      }
-      if(t===HOME){
-        // 走到营地存仓(range放宽到1.4, 站到营地旁即可存)
-        this.moveTarget={x:tx,y:ty,action:'deposit',range:1.4};
-        this.showMsg('走向营地存仓...');
         return;
       }
     }
@@ -1992,37 +1996,36 @@ class Game{
           }
         }
       }
-      // === 边缘过渡: 不同类型交界处画方向感知椭圆, 仿帝国时代自然过渡 ===
+      // === 边缘过渡: 半菱形三角形覆盖整条边向邻居方向, 消除锯齿(仿帝国时代自然过渡) ===
       const edges=[
-        {mx:(fNW.x+fNE.x)*0.5,my:(fNW.y+fNE.y)*0.5,nt:(y>0?is.tiles[y-1][x]:t),dx:0,dy:-1},
-        {mx:(fNE.x+fSE.x)*0.5,my:(fNE.y+fSE.y)*0.5,nt:(x<MAP_W-1?is.tiles[y][x+1]:t),dx:1,dy:0},
-        {mx:(fSE.x+fSW.x)*0.5,my:(fSE.y+fSW.y)*0.5,nt:(y<MAP_H-1?is.tiles[y+1][x]:t),dx:0,dy:1},
-        {mx:(fSW.x+fNW.x)*0.5,my:(fSW.y+fNW.y)*0.5,nt:(x>0?is.tiles[y][x-1]:t),dx:-1,dy:0},
+        {nt:(y>0?is.tiles[y-1][x]:t),c1:fNW,c2:fNE},
+        {nt:(x<MAP_W-1?is.tiles[y][x+1]:t),c1:fNE,c2:fSE},
+        {nt:(y<MAP_H-1?is.tiles[y+1][x]:t),c1:fSE,c2:fSW},
+        {nt:(x>0?is.tiles[y][x-1]:t),c1:fSW,c2:fNW},
       ];
-      // 对角邻居(用于角落过渡)
-      const corners=[
-        {mx:fNE.x,my:fNE.y,nt:(y>0&&x<MAP_W-1?is.tiles[y-1][x+1]:t),dx:1,dy:-1},
-        {mx:fSE.x,my:fSE.y,nt:(y<MAP_H-1&&x<MAP_W-1?is.tiles[y+1][x+1]:t),dx:1,dy:1},
-        {mx:fSW.x,my:fSW.y,nt:(y<MAP_H-1&&x>0?is.tiles[y+1][x-1]:t),dx:-1,dy:1},
-        {mx:fNW.x,my:fNW.y,nt:(y>0&&x>0?is.tiles[y-1][x-1]:t),dx:-1,dy:-1},
-      ];
-      ctx.globalAlpha=0.32;
+      ctx.globalAlpha=0.5;
       for(const e of edges){
         if(e.nt===t)continue;
         const nc=this._blendColor(e.nt);
         if(!nc)continue;
-        const ang=Math.atan2(e.dy,e.dx);
         ctx.fillStyle=nc;
-        ctx.beginPath();ctx.ellipse(e.mx,e.my,9,5,ang,0,Math.PI*2);ctx.fill();
+        // 三角形: 本格中心 → 边两端角, 填充本格朝该邻居的半菱形
+        ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(e.c1.x,e.c1.y);ctx.lineTo(e.c2.x,e.c2.y);ctx.closePath();ctx.fill();
       }
-      // 角落过渡(更淡)
-      ctx.globalAlpha=0.2;
+      // 对角角落过渡(覆盖菱形尖角, 消除锯齿尖)
+      const corners=[
+        {nt:(y>0&&x<MAP_W-1?is.tiles[y-1][x+1]:t),p:fNE},
+        {nt:(y<MAP_H-1&&x<MAP_W-1?is.tiles[y+1][x+1]:t),p:fSE},
+        {nt:(y<MAP_H-1&&x>0?is.tiles[y+1][x-1]:t),p:fSW},
+        {nt:(y>0&&x>0?is.tiles[y-1][x-1]:t),p:fNW},
+      ];
+      ctx.globalAlpha=0.35;
       for(const e of corners){
         if(e.nt===t)continue;
         const nc=this._blendColor(e.nt);
         if(!nc)continue;
         ctx.fillStyle=nc;
-        ctx.beginPath();ctx.arc(e.mx,e.my,5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(e.p.x,e.p.y,7,0,Math.PI*2);ctx.fill();
       }
       ctx.globalAlpha=1;
     }
@@ -2122,43 +2125,7 @@ class Game{
         }
       }
     }
-    // === 资源点: 矿石=矿山矿脉(岩石基座+矿晶), 水晶=晶簇, 皮/木=小堆 ===
-    if(vis==='near'&&is.resources[`${x},${y}`]){
-      const r=is.resources[`${x},${y}`];
-      if(r==='ore'){
-        // 矿山形象: 地面阴影 + 岩石矿脉基座 + 紫色矿晶簇(不再悬浮)
-        ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(cx+3,cy+4,11,5,0,0,Math.PI*2);ctx.fill();
-        // 岩石基座(分层渐深)
-        ctx.fillStyle='#3a342e';ctx.beginPath();ctx.ellipse(cx,cy+2,10,6,0,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#5a5048';ctx.beginPath();ctx.ellipse(cx,cy,9,5,0,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle='#6a5e52';ctx.beginPath();ctx.ellipse(cx-1,cy-1,7,4,0,0,Math.PI*2);ctx.fill();
-        // 矿晶簇(紫色尖晶, 从岩石中突出)
-        const vein='#c860d8';const veinLt='#e8a8f0';
-        const pts=[[ -3,1,4],[2,0,5],[ -1,-2,3.5],[4,-1,3]];
-        for(const[px,py,s]of pts){
-          ctx.fillStyle=vein;ctx.beginPath();ctx.moveTo(cx+px,py+cy+s);ctx.lineTo(cx+px-s*0.6,py+cy);ctx.lineTo(cx+px+s*0.6,py+cy);ctx.closePath();ctx.fill();
-          ctx.fillStyle=veinLt;ctx.beginPath();ctx.moveTo(cx+px,py+cy+s*0.7);ctx.lineTo(cx+px-s*0.3,py+cy);ctx.lineTo(cx+px+s*0.3,py+cy);ctx.closePath();ctx.fill();
-        }
-        // 高光闪点
-        ctx.fillStyle='rgba(255,255,255,0.7)';ctx.beginPath();ctx.arc(cx+2,cy-2,1,0,Math.PI*2);ctx.fill();
-      } else if(r==='crystal'){
-        // 水晶簇: 蓝白色尖晶从地面突出
-        ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(cx+2,cy+3,8,4,0,0,Math.PI*2);ctx.fill();
-        const pts=[[ -2,2,5],[2,0,6],[0,-1,4]];
-        for(const[px,py,s]of pts){
-          ctx.fillStyle='#3a8ad8';ctx.beginPath();ctx.moveTo(cx+px,py+cy+s);ctx.lineTo(cx+px-s*0.5,py+cy);ctx.lineTo(cx+px+s*0.5,py+cy);ctx.closePath();ctx.fill();
-          ctx.fillStyle='#a8d8ff';ctx.beginPath();ctx.moveTo(cx+px,py+cy+s*0.7);ctx.lineTo(cx+px-s*0.25,py+cy);ctx.lineTo(cx+px+s*0.25,py+cy);ctx.closePath();ctx.fill();
-        }
-        ctx.fillStyle='rgba(255,255,255,0.8)';ctx.beginPath();ctx.arc(cx+1,cy-1,1.2,0,Math.PI*2);ctx.fill();
-      } else {
-        // 皮/木: 小堆
-        const col=r==='hide'?'#8a5a3a':'#6a4a28';
-        ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(cx+2,cy+2,7,3,0,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(cx,cy,6,3,0,0,Math.PI*2);ctx.fill();
-        ctx.fillStyle=r==='hide'?'#a87a5a':'#8a6a48';ctx.beginPath();ctx.ellipse(cx-1,cy-1,4,2,0,0,Math.PI*2);ctx.fill();
-      }
-    }
-    else if(vis==='far'&&is.resources[`${x},${y}`]){const r=is.resources[`${x},${y}`];ctx.fillStyle=r==='ore'?'#a040b0':r==='crystal'?'#5aa8d8':'#7a5a3a';ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();}
+    // 资源点改为实时绘制(见drawResources), 不在预渲染层(避免3x缩放模糊+悬浮感)
   }
   drawTrap(tp){
     const vis=this.visible(Math.round(tp.x),Math.round(tp.y));if(vis!=='near'&&vis!=='far')return;
@@ -2300,20 +2267,81 @@ class Game{
     ctx.fillStyle=s.color;ctx.beginPath();ctx.moveTo(6,0);ctx.lineTo(10,-2);ctx.lineTo(10,2);ctx.closePath();ctx.fill();
     ctx.restore();
   }
+  // === 资源点实时绘制(清晰, 不被3x缩放模糊; 矿石=矿山矿脉贴地) ===
+  drawResources(){
+    const ctx=this.ctx;const center=this.toScreen(this.camX,this.camY);
+    for(const k in this.island.resources){
+      const r=this.island.resources[k];
+      const[rxs,rys]=k.split(',');const rx=+rxs,ry=+rys;
+      const vis=this.visible(rx,ry);
+      if(vis!=='near'&&vis!=='far')continue;
+      const e=this.island.getElevAt(rx,ry);
+      const ps=this.toScreen(rx,ry,e);
+      const cx=ps.sx+this.W/2-center.sx,cy=ps.sy+this.H/2-center.sy;
+      if(vis==='far'){
+        ctx.fillStyle=r==='ore'?'#a040b0':r==='crystal'?'#5aa8d8':'#7a5a3a';
+        ctx.beginPath();ctx.arc(cx,cy,4,0,Math.PI*2);ctx.fill();
+        continue;
+      }
+      if(r==='ore'){
+        // 矿山矿脉: 大接触阴影(贴地) + 岩石基座(坐在地面) + 矿晶簇(从岩缝突出)
+        ctx.fillStyle='rgba(0,0,0,0.42)';ctx.beginPath();ctx.ellipse(cx+2,cy+5,14,6,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(cx+1,cy+3,11,5,0,0,Math.PI*2);ctx.fill();
+        // 岩石基座分层(底部最深, 显出贴地)
+        ctx.fillStyle='#2a2620';ctx.beginPath();ctx.ellipse(cx,cy+3,11,5,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#4a4238';ctx.beginPath();ctx.ellipse(cx,cy+1,10,5,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#5e5448';ctx.beginPath();ctx.ellipse(cx,cy-1,8.5,4,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#6e6452';ctx.beginPath();ctx.ellipse(cx-1,cy-2,6,3,0,0,Math.PI*2);ctx.fill();
+        // 矿晶簇(紫色尖晶, 从岩石顶部突出向上)
+        const vein='#b850c8';const veinLt='#e8a8f0';const veinDk='#7a3098';
+        const pts=[[-3,0,5],[2,-1,6],[-1,-3,4],[4,-2,3.5],[-4,-1,3]];
+        for(const[px,py,s]of pts){
+          ctx.fillStyle=veinDk;ctx.beginPath();ctx.moveTo(cx+px,cy+py+s+1);ctx.lineTo(cx+px-s*0.7,cy+py);ctx.lineTo(cx+px+s*0.7,cy+py);ctx.closePath();ctx.fill();
+          ctx.fillStyle=vein;ctx.beginPath();ctx.moveTo(cx+px,cy+py+s);ctx.lineTo(cx+px-s*0.55,cy+py);ctx.lineTo(cx+px+s*0.55,cy+py);ctx.closePath();ctx.fill();
+          ctx.fillStyle=veinLt;ctx.beginPath();ctx.moveTo(cx+px,cy+py+s*0.65);ctx.lineTo(cx+px-s*0.25,cy+py);ctx.lineTo(cx+px+s*0.25,cy+py);ctx.closePath();ctx.fill();
+        }
+        // 高光闪点
+        ctx.fillStyle='rgba(255,240,255,0.85)';ctx.beginPath();ctx.arc(cx+2,cy-3,1.2,0,Math.PI*2);ctx.fill();
+      } else if(r==='crystal'){
+        // 水晶簇: 蓝白尖晶从地面突出
+        ctx.fillStyle='rgba(0,0,0,0.4)';ctx.beginPath();ctx.ellipse(cx+1,cy+4,10,4,0,0,Math.PI*2);ctx.fill();
+        const pts=[[-2,1,5],[2,-1,6],[0,-2,4]];
+        for(const[px,py,s]of pts){
+          ctx.fillStyle='#2a6ab8';ctx.beginPath();ctx.moveTo(cx+px,cy+py+s);ctx.lineTo(cx+px-s*0.55,cy+py);ctx.lineTo(cx+px+s*0.55,cy+py);ctx.closePath();ctx.fill();
+          ctx.fillStyle='#5aa8e8';ctx.beginPath();ctx.moveTo(cx+px,cy+py+s*0.7);ctx.lineTo(cx+px-s*0.3,cy+py);ctx.lineTo(cx+px+s*0.3,cy+py);ctx.closePath();ctx.fill();
+          ctx.fillStyle='#c8e8ff';ctx.beginPath();ctx.moveTo(cx+px,cy+py+s*0.4);ctx.lineTo(cx+px-s*0.15,cy+py);ctx.lineTo(cx+px+s*0.15,cy+py);ctx.closePath();ctx.fill();
+        }
+        ctx.fillStyle='rgba(255,255,255,0.9)';ctx.beginPath();ctx.arc(cx+1,cy-2,1.3,0,Math.PI*2);ctx.fill();
+      } else {
+        // 皮/木: 小堆贴地
+        const col=r==='hide'?'#7a4a2a':'#5a3a18';
+        ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(cx+1,cy+3,8,3,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=col;ctx.beginPath();ctx.ellipse(cx,cy+1,7,3,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=r==='hide'?'#9a6a4a':'#7a5a38';ctx.beginPath();ctx.ellipse(cx-1,cy,4.5,2,0,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
   draw(){
     const ctx=this.ctx;ctx.fillStyle='#1a5a9a';ctx.fillRect(0,0,this.W,this.H);
-    // === 预渲染地形blit(一次渲染, 每帧只复制可见区域) ===
+    // === 相机缩放: 围绕屏幕中心放大zoom倍, 让人物显示更大 ===
+    const z=this.zoom||1;
+    ctx.save();
+    ctx.translate(this.W/2,this.H/2);
+    ctx.scale(z,z);
+    ctx.translate(-this.W/2,-this.H/2);
+    // === 预渲染地形blit(一次渲染, 每帧只复制可见区域; 缩放下采样1/z区域) ===
     const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
-    ctx.drawImage(this.terrainCanvas,camSX-this.W/2+this.terrainOffX,camSY-this.H/2+this.terrainOffY,this.W,this.H,0,0,this.W,this.H);
+    const srcW=this.W/z,srcH=this.H/z;
+    ctx.imageSmoothingEnabled=true;
+    ctx.drawImage(this.terrainCanvas,camSX-srcW/2+this.terrainOffX,camSY-srcH/2+this.terrainOffY,srcW,srcH,0,0,this.W,this.H);
     // 陷阱(地面层)
     for(const tp of this.traps)this.drawTrap(tp);
     // 火堆(地面层, 有光效)
     for(const f of this.fires)this.drawFire(f);
-    // 痕迹(足迹/血迹)系统已取消(用户反馈不需要)
-    // === B2: 粪便系统已取消(用户反馈不需要) ===
-    // === B1: 气味云绘制已取消(视觉效果不佳, 但底层逻辑保留供动物嗅觉判定) ===
     // === A5: 拾取物(稀有素材掉落) ===
     for(const pk of this.pickups)this.drawPickup(pk);
+    // === 资源点(实时绘制, 清晰) ===
+    this.drawResources();
     // 动物/矛/玩家按y排序
     const drawables=[];
     for(const a of this.animals)drawables.push({y:a.y+a.x,fn:()=>this.drawAnimal(a)});
@@ -2324,7 +2352,8 @@ class Game{
     if(!pInserted)this.drawPlayer();
     // 嗥叫特效(顶层)
     for(const h of this.howlEffects)this.drawHowlEffect(h);
-    // 不再以暗色覆盖夜晚, 保持画面始终明亮
+    ctx.restore();
+    // === UI层(不缩放, 保持文字/小地图清晰) ===
     if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='14px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.6,w,28);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.6+19);}
     // === E2: 小地图(顶层) ===
     this.drawMinimap();
