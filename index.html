@@ -21,25 +21,31 @@
   .dn-night { flex: 1; background: linear-gradient(90deg, #2c3e6b, #1a1a3e); }
   .dn-icon { position: absolute; top: 0; height: 14px; line-height: 14px; font-size: 11px; transform: translateX(-50%); transition: left 0.3s; }
   .dn-label { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 14px; line-height: 14px; font-size: 9px; color: #fff; text-shadow: 0 0 3px #000; }
-  #joystick { position: fixed; left: 20px; bottom: calc(30px + env(safe-area-inset-bottom, 0)); width: 90px; height: 90px; border-radius: 50%; background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.2); touch-action: none; }
-  #stick { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 40px; height: 40px; border-radius: 50%; background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4); }
-  .btn { position: fixed; width: 50px; height: 50px; border-radius: 50%; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: none; }
+  #joystick { position: fixed; left: 16px; bottom: calc(20px + env(safe-area-inset-bottom, 0)); width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.18); touch-action: none; }
+  #stick { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 36px; height: 36px; border-radius: 50%; background: rgba(255,140,60,0.7); border: 2px solid rgba(255,255,255,0.4); }
+  /* === 按钮布局: 右侧贴边两列竖排, 不挡中心视野 ===
+     列1(right:8px)放高频战斗动作: 投矛/近战/潜行/跳/火堆
+     列2(right:62px)放低频生存动作: 采集/捕鱼/陷阱/麻醉/骨哨/制作/喝水/进食/睡觉/存仓
+     每个按钮 38px, 间隔 6px, 从底部向上排列 */
+  .btn { position: fixed; width: 38px; height: 38px; border-radius: 50%; font-size: 9px; font-weight: bold; display: flex; align-items: center; justify-content: center; touch-action: none; padding: 0; line-height: 1; text-align: center; }
   .btn:active { filter: brightness(1.3); }
-  #btn-throw { right: 20px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.6); color: #fff0c8; }
-  #btn-melee { right: 78px; bottom: calc(310px + env(safe-area-inset-bottom, 0)); background: rgba(100,50,30,0.85); border: 2px solid rgba(220,120,60,0.6); color: #ffd8c0; }
-  #btn-trap { right: 78px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(50,80,40,0.85); border: 2px solid rgba(120,200,100,0.5); color: #d0ffd0; }
-  #btn-tranq { right: 136px; bottom: calc(250px + env(safe-area-inset-bottom, 0)); background: rgba(80,40,80,0.85); border: 2px solid rgba(200,120,220,0.5); color: #f0d0ff; }
-  #btn-whistle { right: 194px; bottom: calc(310px + env(safe-area-inset-bottom, 0)); background: rgba(60,60,40,0.85); border: 2px solid rgba(220,220,120,0.5); color: #ffffd0; }
-  #btn-sneak { right: 20px; bottom: calc(310px + env(safe-area-inset-bottom, 0)); background: rgba(40,60,80,0.85); border: 2px solid rgba(100,160,220,0.5); color: #c0e0ff; }
-  #btn-jump { right: 78px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.85); border: 2px solid rgba(180,150,255,0.5); color: #e0d8ff; }
-  #btn-fire { right: 136px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(120,50,20,0.85); border: 2px solid rgba(255,140,40,0.6); color: #ffd0a0; }
-  #btn-fish { right: 78px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.85); border: 2px solid rgba(100,180,255,0.5); color: #c8e8ff; }
-  #btn-drink { right: 136px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(30,80,120,0.85); border: 2px solid rgba(80,180,255,0.5); color: #d0e8ff; }
-  #btn-collect { right: 20px; bottom: calc(190px + env(safe-area-inset-bottom, 0)); background: rgba(40,90,60,0.85); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; }
-  #btn-deposit { right: 78px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.85); border: 2px solid rgba(220,120,120,0.5); color: #ffd0d0; }
-  #btn-sleep { right: 136px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(40,40,80,0.85); border: 2px solid rgba(160,160,220,0.5); color: #d8d8ff; }
-  #btn-eat { right: 20px; bottom: calc(130px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
-  #btn-craft { right: 20px; bottom: calc(70px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
+  /* === 列1: 战斗动作 (right:8px) === */
+  #btn-throw { right: 8px; bottom: calc(20px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.6); color: #fff0c8; }
+  #btn-melee { right: 8px; bottom: calc(64px + env(safe-area-inset-bottom, 0)); background: rgba(100,50,30,0.85); border: 2px solid rgba(220,120,60,0.6); color: #ffd8c0; }
+  #btn-sneak { right: 8px; bottom: calc(108px + env(safe-area-inset-bottom, 0)); background: rgba(40,60,80,0.85); border: 2px solid rgba(100,160,220,0.5); color: #c0e0ff; }
+  #btn-jump { right: 8px; bottom: calc(152px + env(safe-area-inset-bottom, 0)); background: rgba(60,50,90,0.85); border: 2px solid rgba(180,150,255,0.5); color: #e0d8ff; }
+  #btn-fire { right: 8px; bottom: calc(196px + env(safe-area-inset-bottom, 0)); background: rgba(120,50,20,0.85); border: 2px solid rgba(255,140,40,0.6); color: #ffd0a0; }
+  /* === 列2: 生存/制作动作 (right:54px) === */
+  #btn-craft { right: 54px; bottom: calc(20px + env(safe-area-inset-bottom, 0)); background: rgba(50,50,80,0.85); border: 2px solid rgba(150,150,220,0.5); color: #d8d8ff; }
+  #btn-eat { right: 54px; bottom: calc(64px + env(safe-area-inset-bottom, 0)); background: rgba(90,70,30,0.85); border: 2px solid rgba(220,180,80,0.5); color: #fff0c8; }
+  #btn-collect { right: 54px; bottom: calc(108px + env(safe-area-inset-bottom, 0)); background: rgba(40,90,60,0.85); border: 2px solid rgba(120,220,160,0.5); color: #eafff0; }
+  #btn-fish { right: 54px; bottom: calc(152px + env(safe-area-inset-bottom, 0)); background: rgba(30,60,90,0.85); border: 2px solid rgba(100,180,255,0.5); color: #c8e8ff; }
+  #btn-drink { right: 54px; bottom: calc(196px + env(safe-area-inset-bottom, 0)); background: rgba(30,80,120,0.85); border: 2px solid rgba(80,180,255,0.5); color: #d0e8ff; }
+  #btn-trap { right: 54px; bottom: calc(240px + env(safe-area-inset-bottom, 0)); background: rgba(50,80,40,0.85); border: 2px solid rgba(120,200,100,0.5); color: #d0ffd0; }
+  #btn-tranq { right: 54px; bottom: calc(284px + env(safe-area-inset-bottom, 0)); background: rgba(80,40,80,0.85); border: 2px solid rgba(200,120,220,0.5); color: #f0d0ff; }
+  #btn-whistle { right: 54px; bottom: calc(328px + env(safe-area-inset-bottom, 0)); background: rgba(60,60,40,0.85); border: 2px solid rgba(220,220,120,0.5); color: #ffffd0; }
+  #btn-sleep { right: 54px; bottom: calc(372px + env(safe-area-inset-bottom, 0)); background: rgba(40,40,80,0.85); border: 2px solid rgba(160,160,220,0.5); color: #d8d8ff; }
+  #btn-deposit { right: 54px; bottom: calc(416px + env(safe-area-inset-bottom, 0)); background: rgba(90,40,40,0.85); border: 2px solid rgba(220,120,120,0.5); color: #ffd0d0; }
   .btn.active { filter: brightness(1.5); box-shadow: 0 0 8px rgba(255,255,255,0.4); }
   /* PC端: 精确指针(鼠标)时隐藏触屏按钮 */
   @media (pointer: fine) {
@@ -1783,7 +1789,7 @@ class Game{
   renderTerrain(){
     this._off=true;
     const tc=this.terrainCtx;
-    tc.fillStyle='#0a0c12';tc.fillRect(0,0,this.terrainCanvas.width,this.terrainCanvas.height);
+    tc.fillStyle='#0a3a6a';tc.fillRect(0,0,this.terrainCanvas.width,this.terrainCanvas.height);
     for(let s=0;s<=MAP_W+MAP_H-2;s++){
       for(let x=Math.max(0,s-MAP_H+1);x<=Math.min(MAP_W-1,s);x++){const y=s-x;this.drawTile(x,y);}
     }
@@ -1791,17 +1797,21 @@ class Game{
   }
   // === 水面动态波纹(仅可见水域, 每帧绘制) ===
   drawWaterAnim(camSX,camSY){
+    // 稀疏反光小点(避免覆盖整片水面让水变白)
     const ctx=this.ctx;const px=Math.round(this.player.x),py=Math.round(this.player.y);
-    ctx.strokeStyle='rgba(255,255,255,0.1)';ctx.lineWidth=1;
+    ctx.fillStyle='rgba(255,255,255,0.18)';
     for(let dy=-VISION_FAR;dy<=VISION_FAR;dy++)for(let dx=-VISION_FAR;dx<=VISION_FAR;dx++){
       const tx=px+dx,ty=py+dy;
       if(tx<0||tx>=MAP_W||ty<0||ty>=MAP_H)continue;
       if(this.island.tiles[ty][tx]!==WATER)continue;
+      // 仅在部分水面格画反光点, 用确定性哈希避免闪烁
+      const h=((tx*73856093)^(ty*19349663))>>>0;
+      if((h%7)!==0)continue;
       const e=this.island.getElevAt(tx,ty);
       const ws=this.toScreen(tx,ty,e);
       const sx=ws.sx+this.W/2-camSX,sy=ws.sy+this.H/2-camSY;
-      const w=Math.sin((tx+ty)*0.5+this.dayTime*0.1)*2;
-      ctx.beginPath();ctx.moveTo(sx-TW*0.25+w,sy);ctx.lineTo(sx+TW*0.25+w,sy);ctx.stroke();
+      const off=Math.sin(this.dayTime*0.1+tx*0.7+ty*0.5)*3;
+      ctx.beginPath();ctx.arc(sx+off,sy,1.2,0,Math.PI*2);ctx.fill();
     }
   }
   // 地形类型→过渡色基准(用于边缘融合)
@@ -1853,8 +1863,8 @@ class Game{
       case HOME:color=lerpColor('#2c6a36','#4ca856',0.4+noise*0.2);break;
     }}
     else color='#1e232d';
-    // === 略微放大填充消除格缝 ===
-    const ex=1.018;
+    // === 略微放大填充消除格缝(水面放大更多, 避免深色背景漏出) ===
+    const ex=(t===WATER)?1.06:1.018;
     const fNW={x:cx+(pNW.x-cx)*ex,y:cy+(pNW.y-cy)*ex};
     const fNE={x:cx+(pNE.x-cx)*ex,y:cy+(pNE.y-cy)*ex};
     const fSE={x:cx+(pSE.x-cx)*ex,y:cy+(pSE.y-cy)*ex};
@@ -2200,16 +2210,16 @@ class Game{
     ctx.restore();
   }
   draw(){
-    const ctx=this.ctx;ctx.fillStyle='#0a0c12';ctx.fillRect(0,0,this.W,this.H);
+    const ctx=this.ctx;ctx.fillStyle='#0a3a6a';ctx.fillRect(0,0,this.W,this.H);
     // === 预渲染地形blit(一次渲染, 每帧只复制可见区域) ===
     const camSX=(this.camX-this.camY)*TW/2,camSY=(this.camX+this.camY)*TH/2;
     ctx.drawImage(this.terrainCanvas,camSX-this.W/2+this.terrainOffX,camSY-this.H/2+this.terrainOffY,this.W,this.H,0,0,this.W,this.H);
-    // 视野渐变(径向暗角, 替代逐格可见性检查)
+    // 视野渐变(径向暗角, 替代逐格可见性检查) — 减轻强度避免画面过暗
     const ps=this.toScreen(this.player.x,this.player.y,this.player.getHeight(this.island));
     const ppx=ps.sx+this.W/2-camSX,ppy=ps.sy+this.H/2-camSY;
-    const visR=VISION_FAR*TW*0.45;
-    const grad=ctx.createRadialGradient(ppx,ppy,visR*0.6,ppx,ppy,visR);
-    grad.addColorStop(0,'rgba(10,12,18,0)');grad.addColorStop(1,'rgba(10,12,18,0.85)');
+    const visR=VISION_FAR*TW*0.5;
+    const grad=ctx.createRadialGradient(ppx,ppy,visR*0.85,ppx,ppy,visR*1.4);
+    grad.addColorStop(0,'rgba(8,16,32,0)');grad.addColorStop(1,'rgba(8,16,32,0.35)');
     ctx.fillStyle=grad;ctx.fillRect(0,0,this.W,this.H);
     // 水面动态波纹(仅可见水域)
     this.drawWaterAnim(camSX,camSY);
@@ -2236,7 +2246,7 @@ class Game{
     // 嗥叫特效(顶层)
     for(const h of this.howlEffects)this.drawHowlEffect(h);
     const night=Math.abs(this.dayTime-50)/50;
-    if(night>0.3){ctx.fillStyle=`rgba(0,0,0,${(night-0.3)/0.7*0.6})`;ctx.fillRect(0,0,this.W,this.H);}
+    if(night>0.3){ctx.fillStyle=`rgba(5,10,25,${(night-0.3)/0.7*0.4})`;ctx.fillRect(0,0,this.W,this.H);}
     if(this.msgTimer>0){ctx.fillStyle='rgba(0,0,0,0.75)';ctx.font='14px sans-serif';const w=ctx.measureText(this.msg).width+24;ctx.fillRect(this.W/2-w/2,this.H*0.6,w,28);ctx.fillStyle='#ffe';ctx.textAlign='center';ctx.fillText(this.msg,this.W/2,this.H*0.6+19);}
     // === E2: 小地图(顶层) ===
     this.drawMinimap();
